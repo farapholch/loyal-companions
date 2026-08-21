@@ -301,7 +301,7 @@ function grav(h) {
   } catch { return null; }
   const pl = agare(h);
   if (pl) sag(pl, "hund.grav");
-  return vald;
+  return { typ: vald, plats: { x: L.x, y: L.y, z: L.z } };
 }
 
 // TESTKROK: /scriptevent hund:test_apport lägger en boll åtta block från en
@@ -377,9 +377,18 @@ try {
       if (!fynd) { console.warn("[hund] GRAV-TEST FEL: inget grävdes upp"); return; }
       system.runTimeout(() => {
         try {
-          const kvar = d.getEntities({ type: "minecraft:item", location: h.location,
+          // SÖK VID GROPEN, inte vid hunden. Hunden hinner gå fyra block på en
+          // sekund, och då låg fyndet utanför sökradien fast allt fungerat.
+          const kvar = d.getEntities({ type: "minecraft:item", location: fynd.plats,
                                        maxDistance: 6 }).length;
-          if (kvar) console.log(`[hund] GRAV-TEST OK: ${fynd} ligger pa marken`);
+          // HUNDEN HÄMTAR OFTA SITT EGET FYND. Ben och pinnar står på
+          // apportlistan, så den plockar upp dem inom en sekund — testet
+          // rapporterade "fyndet finns inte" när det som hänt var att hunden
+          // gjort precis det den ska.
+          const k = hundar(d).find(x => x.id === h.id);
+          const bar = k ? prop(k, "hund:bar", 0) : 0;
+          if (kvar || bar) console.log(`[hund] GRAV-TEST OK: ${fynd.typ}`
+            + (kvar ? " ligger pa marken" : " hamtades direkt av hunden"));
           else console.warn("[hund] GRAV-TEST FEL: fyndet finns inte");
         } catch (e) { console.warn("[hund] GRAV-TEST FEL: " + e); }
       }, 20);

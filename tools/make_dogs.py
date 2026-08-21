@@ -89,10 +89,11 @@ def kroppsdelar(bh=7, kl=12, kb=7, kh=7, hs=6, oron="upp", ludd=False):
     # följer med när hunden tittar sig omkring. Renderarkontrollern visar den
     # som hund:bar pekar ut.
     for namn in ("mun_boll", "mun_pinne", "mun_ben"):
-        # MÅTTET ÄR MÄTT MOT NOSEN: nosen slutar vid hz-3, så en kub på 2,5 med
-        # framkant hz-5 hänger under nosspetsen. Tre enheter placerade en halv
-        # enhet längre fram såg ut som en röd låda framför ansiktet.
-        d.append((namn, namn, "head", [-1.25, hy - 0.25, hz - 5], [2.5, 2.5, 2.5]))
+        # UNDER KÄKEN, inte framför ansiktet. Tidigare satt en 2,5-kub i jämnhöjd
+        # med nosen och nästan lika bred — Pelle läste den som "en konstig röd
+        # nos", inte som en boll i munnen. Nu är den mindre än nosen och hänger
+        # under käklinjen, där en hund faktiskt bär något.
+        d.append((namn, namn, "head", [-1, hy - 1.25, hz - 4], [2, 2, 2]))
     return d
 
 
@@ -239,6 +240,15 @@ def pals(rasid, delar, uv, farg):
                                           "ora": farg["skugga"]}.get(roll, farg["pals"])
         for namn, (fx, fy, fw, fh) in f.items():
             rect(fx, fy, fw, fh, sh(grund, SIDSKUGGA[namn]))
+        if roll in MUNFARG:
+            # BOLLEN SKA SE RUND UT. En kub i en enda färg blir en tegelsten;
+            # en ljus söm tvärs över framsidan och en ljusare ovansida gör att
+            # ögat läser den som ett föremål i munnen i stället för som en
+            # målad nos.
+            fx, fy, fw, fh = f["north"]
+            rect(fx, fy + fh / 2 - 0.5, fw, 1, sh(grund, 1.4))
+            tx, ty, tw_, th_ = f["top"]
+            rect(tx, ty, tw_, 1, sh(grund, 1.5))
 
     for mall in farg.get("monster", []):
         MONSTER[mall](rect, sidor, farg)
