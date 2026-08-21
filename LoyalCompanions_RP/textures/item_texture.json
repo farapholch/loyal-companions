@@ -10,6 +10,9 @@
     },
     "dc_kelda": {
       "textures": "textures/items/dc_kelda"
+    },
+    "dc_peach": {
+      "textures": "textures/items/dc_peach"
     }
   }
 }

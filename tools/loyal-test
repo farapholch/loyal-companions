@@ -15,7 +15,13 @@ SRC=/opt/loyal-companions
 SRV=/opt/bds/server
 WORLD="$SRV/worlds/Hundtest"
 LOG=/tmp/loyal-test.log
-RASER="bailey shadow kelda"
+# RASERNA LÄSES UR PAKETET, inte ur en lista här. Peach lades till och
+# testades inte — raden sa fortfarande "3/3" och såg grön ut. Kattprojektet
+# gick i exakt den fällan tre gånger (spawnägg som raderades, katter som
+# aldrig provades), och det är alltid samma orsak: två ställen som ska hållas
+# i synk, varav bara ett underhålls.
+RASER=$(ls "$SRC/LoyalCompanions_BP/entities/"*.json | xargs -n1 basename | sed 's/\.json$//' | tr '\n' ' ')
+ANTAL=$(echo $RASER | wc -w)
 FAIL=0
 ok(){ echo "  ✅ $1"; }
 bad(){ echo "  ❌ $1"; FAIL=1; }
@@ -124,8 +130,8 @@ TAM=$(grep -c "Found entity.hund:" "$LOG")
 HARD=$(grep -ciE "Syntax error|unknown component|invalid" "$LOG")
 CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
-[ "$SUM" -ge 3 ] && ok "alla tre raserna spawnar ($SUM/3)" || bad "bara $SUM/3 spawnade"
-[ "$TAM" -ge 3 ] && ok "tämjningen sätter hund:tam ($TAM/3, has_property)" || bad "bara $TAM/3 blev tämjda"
+[ "$SUM" -ge "$ANTAL" ] && ok "alla raser spawnar ($SUM/$ANTAL: $RASER)" || bad "bara $SUM/$ANTAL spawnade"
+[ "$TAM" -ge "$ANTAL" ] && ok "tämjningen sätter hund:tam ($TAM/$ANTAL, has_property)" || bad "bara $TAM/$ANTAL blev tämjda"
 [ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
 if [ -n "$CL" ] && [ -s "$CL" ] && grep -v '\[Scripting\]\[inform\]' "$CL" | grep -q '[^[:space:]]'; then
   bad "innehållsfel i $(basename "$CL")"; grep -v '^[[:space:]]*$' "$CL" | head -4 | sed 's/^/     /'

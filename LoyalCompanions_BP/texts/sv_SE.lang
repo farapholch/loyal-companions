@@ -7,3 +7,6 @@ item.spawn_egg.entity.hund:shadow.name=Spawn Shadow
 entity.hund:kelda.name=Kelda (Siberian Husky)
 entity.kelda.name=Kelda (Siberian Husky)
 item.spawn_egg.entity.hund:kelda.name=Spawn Kelda
+entity.hund:peach.name=Peach (Pomeranian)
+entity.peach.name=Peach (Pomeranian)
+item.spawn_egg.entity.hund:peach.name=Spawn Peach

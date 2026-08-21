@@ -22,14 +22,53 @@ BP = f"{BASE}/LoyalCompanions_BP"
 RP = f"{BASE}/LoyalCompanions_RP"
 NS = "hund"
 
-# (id, visningsnamn, ras, päls, skugga, undersida, ögon, skala, biom)
+# LUDDET. Vakthundens modell är en storvuxen vakthund: rak svans, slät hals.
+# En pomeranian är motsatsen — liten, yvig krage och en svans som ligger uppe
+# över ryggen. Med bara nedskalning blir hon en vargvalp, inte en pom. Därför
+# får luddiga raser en EGEN geometri: samma ben och samma UV som grundmodellen,
+# plus två kuber. De ligger på ledig texturyta (y 44 och nedåt, som inget annat
+# använder) och målas direkt i pälsfunktionen.
+# MÅTTEN ÄR TAGNA MOT KROPPEN, inte fritt valda. Kroppen är x -3.5..3.5,
+# y 7..14, z -6..6. Första försöket la svansen på y 15-18, z 4-9 — den svävade
+# synligt bakom hunden, för den rörde varken rygg eller bakdel. Nu överlappar
+# båda kuberna kroppen med ett par enheter, vilket är hur en päls sitter.
+LUDD_KUBER = [
+    ("body", [-4.5, 7, -6.5], [9, 7.5, 5], [28, 44], "krage"),    # halskrage fram
+    ("tail", [-1.5, 12.5, 2.5], [3, 4, 5], [0, 52], "svans"),     # yvig svans över ryggen
+]
+
+
+def geometri_ludd():
+    """geometry.hund_ludd — grundmodellen plus krage och yvig svans."""
+    g = json.load(open(f"{RP}/models/entity/hund.geo.json"))
+    bas = g["minecraft:geometry"][0]
+    ny = json.loads(json.dumps(bas))
+    ny["description"] = dict(bas["description"], identifier="geometry.hund_ludd")
+    # svansen ersätts, kragen läggs till — annars sticker den raka svansen ut
+    # genom den yviga
+    for b in ny["bones"]:
+        if b["name"] == "tail":
+            b["cubes"] = []
+    for benamn, origin, size, uv, _vad in LUDD_KUBER:
+        for b in ny["bones"]:
+            if b["name"] == benamn:
+                b.setdefault("cubes", []).append({"origin": origin, "size": size, "uv": uv})
+    g["minecraft:geometry"] = [bas, ny]
+    json.dump(g, open(f"{RP}/models/entity/hund.geo.json", "w"), indent=2)
+
+
+# (id, visningsnamn, ras, päls, skugga, undersida, ögon, skala, biom, ludd)
 RASER = [
     ("bailey", "Bailey", "Golden Retriever",
-     (212, 168, 96), (176, 132, 68), (238, 214, 168), (86, 58, 34), 1.00, "forest"),
+     (212, 168, 96), (176, 132, 68), (238, 214, 168), (86, 58, 34), 1.00, "forest", False),
     ("shadow", "Shadow", "German Shepherd",
-     (92, 68, 44), (44, 34, 26), (176, 138, 86), (60, 40, 24), 1.10, "plains"),
+     (92, 68, 44), (44, 34, 26), (176, 138, 86), (60, 40, 24), 1.10, "plains", False),
     ("kelda", "Kelda", "Siberian Husky",
-     (188, 192, 200), (96, 102, 112), (240, 242, 246), (96, 178, 210), 1.05, "taiga"),
+     (188, 192, 200), (96, 102, 112), (240, 242, 246), (96, 178, 210), 1.05, "taiga", False),
+    # POMERANIAN: liten och orange, med krage och yvig svans. Skalan 0.68 är
+    # vald mot de andra — en pom går knappt spelaren till knäna.
+    ("peach", "Peach", "Pomeranian",
+     (226, 146, 62), (182, 108, 40), (246, 206, 150), (74, 48, 28), 0.68, "plains", True),
 ]
 
 
@@ -37,7 +76,7 @@ def sh(c, k):
     return tuple(min(255, int(v * k)) for v in c[:3]) + (255,)
 
 
-def pals(rasid, pels, skugga, under, ogon):
+def pals(rasid, pels, skugga, under, ogon, ludd=False):
     """Pälsen målas ur vakthundens UV-layout: samma kuber, andra färger.
 
     Vakthundens egen textur ritades kub för kub i det andra paketet; här
@@ -64,6 +103,17 @@ def pals(rasid, pels, skugga, under, ogon):
             k = (sum(grund) + 1) / (sum(kalla) + 1)
             ny.append(sh(mal, k))
         ut.append(ny)
+    if ludd:
+        # kragen och svansen har ingen förlaga i vakthundens textur — de målas
+        # här, på ytor grundmodellen inte rör
+        for _b, size, uv in [(k[0], k[2], k[3]) for k in LUDD_KUBER]:
+            bw, bh, bd = size
+            fw, fh = math.ceil(2 * (bd + bw)), math.ceil(bd + bh)
+            for y in range(uv[1], min(h, uv[1] + fh)):
+                for x in range(uv[0], min(w, uv[0] + fw)):
+                    ljus = 1.16 if y < uv[1] + math.ceil(bd) else (
+                        0.72 if y == uv[1] + fh - 1 else 1.0)
+                    ut[y][x] = sh(pels, ljus)
     rr.write_png(f"{RP}/textures/entity/{rasid}.png", w, h, ut)
 
 
@@ -135,12 +185,12 @@ def entitet(rasid, namn, skala):
     json.dump(e, open(f"{BP}/entities/{rasid}.json", "w"), indent=2)
 
 
-def klient(rasid):
+def klient(rasid, ludd=False):
     d = {"format_version": "1.10.0", "minecraft:client_entity": {"description": {
         "identifier": f"{NS}:{rasid}",
         "materials": {"default": "entity_alphatest"},
         "textures": {"default": f"textures/entity/{rasid}"},
-        "geometry": {"default": "geometry.hund"},
+        "geometry": {"default": "geometry.hund_ludd" if ludd else "geometry.hund"},
         # Bennamnen i geometry.hund är head/body/leg0-3/tail — samma som
         # vaniljas fyrfotingsanimationer förväntar sig.
         "animations": {"walk": "animation.quadruped.walk",
@@ -168,17 +218,18 @@ def spawnregel(rasid, biom):
 if __name__ == "__main__":
     lang = []
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
-    for rasid, namn, ras, pels, skugga, under, ogon, skala, biom in RASER:
-        pals(rasid, pels, skugga, under, ogon)
+    geometri_ludd()
+    for rasid, namn, ras, pels, skugga, under, ogon, skala, biom, ludd in RASER:
+        pals(rasid, pels, skugga, under, ogon, ludd)
         ikon(rasid, pels, skugga, under, ogon)
         entitet(rasid, namn, skala)
-        klient(rasid)
+        klient(rasid, ludd)
         spawnregel(rasid, biom)
         itex["texture_data"][f"dc_{rasid}"] = {"textures": f"textures/items/dc_{rasid}"}
         lang += [f"entity.{NS}:{rasid}.name={namn} ({ras})",
                  f"entity.{rasid}.name={namn} ({ras})",
                  f"item.spawn_egg.entity.{NS}:{rasid}.name=Spawn {namn}"]
-        print(f"  {namn:8} {ras:18} skala {skala}  biom {biom}")
+        print(f"  {namn:8} {ras:18} skala {skala}  biom {biom}{'  (ludd)' if ludd else ''}")
     json.dump(itex, open(f"{RP}/textures/item_texture.json", "w"), indent=2)
     for pack in (BP, RP):
         for spr in ("en_US", "sv_SE"):
