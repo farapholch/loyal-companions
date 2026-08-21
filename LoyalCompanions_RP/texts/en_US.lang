@@ -1,0 +1,9 @@
+entity.hund:bailey.name=Bailey (Golden Retriever)
+entity.bailey.name=Bailey (Golden Retriever)
+item.spawn_egg.entity.hund:bailey.name=Spawn Bailey
+entity.hund:shadow.name=Shadow (German Shepherd)
+entity.shadow.name=Shadow (German Shepherd)
+item.spawn_egg.entity.hund:shadow.name=Spawn Shadow
+entity.hund:kelda.name=Kelda (Siberian Husky)
+entity.kelda.name=Kelda (Siberian Husky)
+item.spawn_egg.entity.hund:kelda.name=Spawn Kelda

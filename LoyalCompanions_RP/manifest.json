@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Loyal Companions (resources)",
+    "description": "Hand-made dogs to tame, train and take with you.",
+    "uuid": "70c1fa80-580a-4d0f-9627-559443e7f7ca",
+    "version": [
+      0,
+      1,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "889fd4ec-bbf5-4b8e-91b8-5d1e375f2eea",
+      "version": [
+        0,
+        1,
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "resource_pack_name": "loyal",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "dc_bailey": {
+      "textures": "textures/items/dc_bailey"
+    },
+    "dc_shadow": {
+      "textures": "textures/items/dc_shadow"
+    },
+    "dc_kelda": {
+      "textures": "textures/items/dc_kelda"
+    }
+  }
+}

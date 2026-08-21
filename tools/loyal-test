@@ -1,0 +1,136 @@
+#!/bin/bash
+# Testkedja för Loyal Companions. Samma upplägg som purrfect-test, men bara de
+# lager som ett ungt paket behöver: statisk validering och en skarp
+# serverkörning. GameTest och nätverksbot läggs till när det finns mekanik
+# värd att prova med dem.
+#
+# EN Bedrock-server åt gången — samma lås som kattpaketet, annars krockar de
+# på portarna när båda testas.
+set -u
+if [ "${BDS_LOCK_HELD:-}" != "1" ]; then
+  exec 9>/tmp/bds.lock; flock -w 1200 9 || { echo "kunde inte ta serverlåset"; exit 1; }
+  export BDS_LOCK_HELD=1
+fi
+SRC=/opt/loyal-companions
+SRV=/opt/bds/server
+WORLD="$SRV/worlds/Hundtest"
+LOG=/tmp/loyal-test.log
+RASER="bailey shadow kelda"
+FAIL=0
+ok(){ echo "  ✅ $1"; }
+bad(){ echo "  ❌ $1"; FAIL=1; }
+
+echo "=== Loyal Companions-test $(date '+%F %H:%M') ==="
+echo
+echo "[1/3] JSON och bilder"
+n=0
+while read -r f; do
+  n=$((n+1))
+  python3 -c "import json;json.load(open('$f'))" 2>/dev/null || bad "ogiltig JSON: ${f#$SRC/}"
+done < <(find "$SRC" -name "*.json")
+[ $FAIL -eq 0 ] && ok "$n JSON-filer giltiga"
+python3 /opt/purrfect-companions/tools/pngkoll.py "$SRC/LoyalCompanions_RP" | sed 's/^/  /' || bad "trasiga PNG-filer"
+
+echo
+echo "[2/3] Struktur"
+STRUKT=$(python3 - "$SRC" <<'PY'
+import json, glob, os, struct, sys
+SRC = sys.argv[1]; bad = []
+bp = json.load(open(f"{SRC}/LoyalCompanions_BP/manifest.json"))
+rp = json.load(open(f"{SRC}/LoyalCompanions_RP/manifest.json"))
+if bp["header"]["version"] != rp["header"]["version"]: bad.append("BP- och RP-version skiljer")
+dep = [d for d in bp.get("dependencies", []) if d.get("uuid") == rp["header"]["uuid"]]
+if not dep: bad.append("BP saknar beroende till RP")
+# geometrins texturstorlek måste stämma med PNG:en — annars läses UV i fel
+# skala och modellen blir obegriplig, utan att servern märker något
+geo = json.load(open(f"{SRC}/LoyalCompanions_RP/models/entity/hund.geo.json"))["minecraft:geometry"][0]
+BEN = {b["name"] for b in geo["bones"]}
+KRAV = {"animation.common.look_at_target": ["head"],
+        "animation.quadruped.walk": ["leg0", "leg1", "leg2", "leg3"]}
+itex = json.load(open(f"{SRC}/LoyalCompanions_RP/textures/item_texture.json"))["texture_data"]
+for f in sorted(glob.glob(f"{SRC}/LoyalCompanions_RP/entity/*.json")):
+    d = json.load(open(f))["minecraft:client_entity"]["description"]
+    namn = os.path.basename(f)
+    tex = f"{SRC}/LoyalCompanions_RP/{d['textures']['default']}.png"
+    if not os.path.exists(tex): bad.append(f"{namn}: textur saknas"); continue
+    tw, th = struct.unpack(">II", open(tex, "rb").read()[16:24])
+    dsc = geo["description"]
+    if (dsc.get("texture_width"), dsc.get("texture_height")) != (tw, th):
+        bad.append(f"{namn}: geometrins texturstorlek != PNG {tw}x{th}")
+    for anim in d.get("animations", {}).values():
+        for krav in KRAV.get(anim, []):
+            if krav not in BEN: bad.append(f"{namn}: {anim} kräver benet '{krav}'")
+    agg = d.get("spawn_egg", {}).get("texture")
+    if agg and agg not in itex: bad.append(f"{namn}: spawnägg '{agg}' saknas i item_texture.json")
+    ident = d["identifier"]
+    if not os.path.exists(f"{SRC}/LoyalCompanions_BP/entities/{ident.split(':')[1]}.json"):
+        bad.append(f"{namn}: ingen beteendeentitet")
+# varje entitet ska ha ett namn i språkfilen, annars ser spelaren en rånyckel
+lang = open(f"{SRC}/LoyalCompanions_RP/texts/en_US.lang", encoding="utf-8").read()
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
+    ident = json.load(open(f))["minecraft:entity"]["description"]["identifier"]
+    if f"entity.{ident}.name=" not in lang: bad.append(f"{ident}: saknar namn i en_US.lang")
+print("\n".join(bad))
+PY
+)
+if [ -n "$STRUKT" ]; then
+  echo "$STRUKT" | while read -r l; do [ -n "$l" ] && echo "  ❌ $l"; done
+  FAIL=1
+else
+  ok "manifest, geometri mot PNG, bennamn mot animationer, spawnägg, namn i språkfilen"
+fi
+
+echo
+echo "[3/3] Skarp server (~1 min)"
+pkill -9 -x bedrock_server 2>/dev/null; sleep 2
+find "$SRV" -name "ContentLog*" -delete 2>/dev/null
+rm -rf "$WORLD/db" "$WORLD/behavior_packs" "$WORLD/resource_packs"
+mkdir -p "$WORLD/behavior_packs" "$WORLD/resource_packs"
+cp -r "$SRC/LoyalCompanions_BP" "$WORLD/behavior_packs/"
+cp -r "$SRC/LoyalCompanions_RP" "$WORLD/resource_packs/"
+python3 - "$WORLD" <<'PY'
+import json, sys
+W = sys.argv[1]
+bp = json.load(open(f"{W}/behavior_packs/LoyalCompanions_BP/manifest.json"))["header"]
+rp = json.load(open(f"{W}/resource_packs/LoyalCompanions_RP/manifest.json"))["header"]
+json.dump([{"pack_id": bp["uuid"], "version": bp["version"]}], open(f"{W}/world_behavior_packs.json", "w"))
+json.dump([{"pack_id": rp["uuid"], "version": rp["version"]}], open(f"{W}/world_resource_packs.json", "w"))
+PY
+sed -i 's/^level-name=.*/level-name=Hundtest/' "$SRV/server.properties"
+cd "$SRV" || exit 1
+{
+  sleep 28
+  echo "tickingarea add 0 0 0 48 48 48 hund"; sleep 3
+  # MARK OCH LUFTFICKA FÖRST. Utan dem dör hunden inom en sekund — testvärlden
+  # är inte platt vid y=20, och en summonad hund faller eller kvävs. Felet såg
+  # ut som att tämjningen inte fungerade (0/3), men första testfor hittade
+  # hunden och eventet en sekund senare hade inga mål: djuret var borta, inte
+  # otämjt. Samma fälla som kattpaketets vakuumtest gick i.
+  echo "fill 6 19 6 14 19 14 stone"; sleep 1
+  echo "fill 6 20 6 14 26 14 air"; sleep 1
+  for r in $RASER; do
+    echo "summon hund:$r 10 21 10"; sleep 2
+    echo "event entity @e[type=hund:$r] hund:on_tame"; sleep 1
+    echo "testfor @e[type=hund:$r,x=10,y=21,z=10,r=30,has_property={hund:tam=1}]"; sleep 1
+    echo "kill @e[type=hund:$r]"; sleep 1
+  done
+  sleep 2; echo "stop"; sleep 8
+} | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
+pkill -9 -x bedrock_server 2>/dev/null
+
+LOADED=$(grep -c "Pack Stack.*Loyal Companions" "$LOG")
+SUM=$(grep -c "Object successfully summoned" "$LOG")
+TAM=$(grep -c "Found entity.hund:" "$LOG")
+HARD=$(grep -ciE "Syntax error|unknown component|invalid" "$LOG")
+CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
+[ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
+[ "$SUM" -ge 3 ] && ok "alla tre raserna spawnar ($SUM/3)" || bad "bara $SUM/3 spawnade"
+[ "$TAM" -ge 3 ] && ok "tämjningen sätter hund:tam ($TAM/3, has_property)" || bad "bara $TAM/3 blev tämjda"
+[ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
+if [ -n "$CL" ] && [ -s "$CL" ] && grep -v '\[Scripting\]\[inform\]' "$CL" | grep -q '[^[:space:]]'; then
+  bad "innehållsfel i $(basename "$CL")"; grep -v '^[[:space:]]*$' "$CL" | head -4 | sed 's/^/     /'
+else ok "inga innehållsfel"; fi
+
+echo
+[ $FAIL -eq 0 ] && echo "=== LOYAL COMPANIONS GRÖNT ===" || echo "=== FEL HITTADE (logg: $LOG) ==="
+exit $FAIL
