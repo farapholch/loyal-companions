@@ -2,15 +2,15 @@
   "format_version": "1.10.0",
   "minecraft:client_entity": {
     "description": {
-      "identifier": "hund:kelda",
+      "identifier": "hund:dot",
       "materials": {
         "default": "entity_alphatest"
       },
       "textures": {
-        "default": "textures/entity/kelda"
+        "default": "textures/entity/dot"
       },
       "geometry": {
-        "default": "geometry.hund_normal"
+        "default": "geometry.hund_hang"
       },
       "animations": {
         "walk": "animation.quadruped.walk",
@@ -28,7 +28,7 @@
         "controller.render.hund"
       ],
       "spawn_egg": {
-        "texture": "dc_kelda",
+        "texture": "dc_dot",
         "texture_index": 0
       }
     }

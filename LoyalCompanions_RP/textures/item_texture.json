@@ -14,6 +14,18 @@
     "dc_pepper": {
       "textures": "textures/items/dc_pepper"
     },
+    "dc_pickle": {
+      "textures": "textures/items/dc_pickle"
+    },
+    "dc_bruno": {
+      "textures": "textures/items/dc_bruno"
+    },
+    "dc_dot": {
+      "textures": "textures/items/dc_dot"
+    },
+    "dc_scout": {
+      "textures": "textures/items/dc_scout"
+    },
     "dc_boll": {
       "textures": "textures/items/dc_boll"
     }

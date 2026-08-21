@@ -121,6 +121,55 @@
         "minecraft:behavior.stay_while_sitting": {
           "priority": 5
         },
+        "minecraft:healable": {
+          "force_use": true,
+          "items": [
+            {
+              "item": "beef",
+              "heal_amount": 3
+            },
+            {
+              "item": "cooked_beef",
+              "heal_amount": 5
+            },
+            {
+              "item": "chicken",
+              "heal_amount": 2
+            },
+            {
+              "item": "cooked_chicken",
+              "heal_amount": 4
+            },
+            {
+              "item": "porkchop",
+              "heal_amount": 3
+            },
+            {
+              "item": "cooked_porkchop",
+              "heal_amount": 5
+            },
+            {
+              "item": "mutton",
+              "heal_amount": 2
+            },
+            {
+              "item": "cooked_mutton",
+              "heal_amount": 4
+            },
+            {
+              "item": "rabbit",
+              "heal_amount": 2
+            },
+            {
+              "item": "cooked_rabbit",
+              "heal_amount": 4
+            },
+            {
+              "item": "rotten_flesh",
+              "heal_amount": 2
+            }
+          ]
+        },
         "minecraft:interact": {
           "interactions": [
             {
@@ -225,7 +274,52 @@
         "minecraft:scale": {
           "value": 0.5
         },
-        "minecraft:is_baby": {}
+        "minecraft:is_baby": {},
+        "minecraft:ageable": {
+          "duration": 1200,
+          "grow_up": {
+            "event": "hund:grow_up",
+            "target": "self"
+          },
+          "feed_items": [
+            "bone",
+            "beef",
+            "chicken",
+            "porkchop"
+          ]
+        }
+      },
+      "hund:parar": {
+        "minecraft:breedable": {
+          "require_tame": true,
+          "require_full_health": true,
+          "breeds_with": [
+            {
+              "mate_type": "hund:kelda",
+              "baby_type": "hund:kelda",
+              "breed_event": {
+                "event": "hund:fodd",
+                "target": "baby"
+              }
+            }
+          ],
+          "love_filters": {
+            "test": "has_component",
+            "subject": "self",
+            "operator": "!=",
+            "value": "minecraft:is_baby"
+          },
+          "breed_items": [
+            "beef",
+            "cooked_beef",
+            "porkchop",
+            "cooked_porkchop"
+          ]
+        },
+        "minecraft:behavior.breed": {
+          "priority": 4,
+          "speed_multiplier": 1.0
+        }
       }
     },
     "events": {
@@ -233,7 +327,8 @@
         "add": {
           "component_groups": [
             "hund:tamed",
-            "hund:foljer"
+            "hund:foljer",
+            "hund:parar"
           ]
         },
         "set_property": {
@@ -328,10 +423,23 @@
           ]
         }
       },
+      "hund:fodd": {
+        "add": {
+          "component_groups": [
+            "hund:valp",
+            "hund:tamed",
+            "hund:foljer"
+          ]
+        },
+        "set_property": {
+          "hund:tam": 1
+        }
+      },
       "hund:grow_up": {
         "add": {
           "component_groups": [
-            "hund:vuxen"
+            "hund:vuxen",
+            "hund:parar"
           ]
         },
         "remove": {

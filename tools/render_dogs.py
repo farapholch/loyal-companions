@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Renderar hundarna ur paketets EGNA filer, så man kan se dem utan Minecraft.
+
+Servern renderar ingenting och det finns ingen klient på maskinen. Utan den här
+bilden är enda sättet att veta hur en hund ser ut att fråga någon som har
+spelet uppe — och då upptäcks fel som sneda ögon eller ben som smälter ihop
+först efter en release. Katterna kostade flera varv på precis det.
+
+Motorn är kattprojektets: samma kub-för-kub-rasterisering med z-buffert och
+rotation kring benens pivotar.
+
+    python3 tools/render_dogs.py            # publish/dogs.png, alla raser
+    python3 tools/render_dogs.py truffle    # en enda, större
+"""
+import json, math, os, sys
+
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, "/opt/purrfect-companions")
+import render_regression as rr
+
+RP = f"{BASE}/LoyalCompanions_RP"
+GEO = {g["description"]["identifier"]: g
+       for g in json.load(open(f"{RP}/models/entity/hund.geo.json"))["minecraft:geometry"]}
+
+# En pose som sätter varje rörligt ben i arbete. Står något stilla här kan dess
+# pivot vara hur fel som helst utan att synas.
+POSE = {"head": (-8, 24, 0), "leg0": (26, 0, 0), "leg1": (-26, 0, 0),
+        "leg2": (-22, 0, 0), "leg3": (22, 0, 0), "tail": (10, 0, 14)}
+
+
+def rasklient():
+    ut = []
+    for f in sorted(os.listdir(f"{RP}/entity")):
+        d = json.load(open(f"{RP}/entity/{f}"))["minecraft:client_entity"]["description"]
+        ut.append((d["identifier"].split(":")[1], d["geometry"]["default"],
+                   d["textures"]["default"]))
+    return ut
+
+
+def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, bakgrund=(22, 26, 34, 255)):
+    tw, th, tex = rr.read_png(f"{RP}/{texnamn}.png")
+    geo = GEO[geoid]
+    ya, pa = math.radians(yaw), math.radians(pitch)
+    # MUNKUBERNA visas bara när hunden bär något — annars ligger boll, pinne och
+    # ben i högen samtidigt, precis det renderarkontrollern finns för att hindra.
+    dolda = {n for i, n in enumerate(("mun_boll", "mun_pinne", "mun_ben"), 1) if i != bar}
+
+    def cam(p):
+        x, y, z = p
+        xr = x * math.cos(ya) + z * math.sin(ya)
+        zr = -x * math.sin(ya) + z * math.cos(ya)
+        return (xr, y * math.cos(pa) - zr * math.sin(pa), zr * math.cos(pa) + y * math.sin(pa))
+
+    ben = [(b["name"], b.get("pivot", [0, 0, 0]), b.get("cubes", []))
+           for b in geo["bones"] if b["name"] not in dolda]
+    hörn = [cam((x, y, z)) for x in (-9, 9) for y in (0, 21) for z in (-13, 11)]
+    minx, maxx = min(c[0] for c in hörn), max(c[0] for c in hörn)
+    miny, maxy = min(c[1] for c in hörn), max(c[1] for c in hörn)
+    pad = int(min(W, H) * 0.05)
+    sc = min((W - 2 * pad) / (maxx - minx), (H - 2 * pad) / (maxy - miny))
+    offx = pad - minx * sc + (W - 2 * pad - (maxx - minx) * sc) / 2
+    offy = pad - miny * sc + (H - 2 * pad - (maxy - miny) * sc) / 2
+    cv = [[bakgrund] * W for _ in range(H)]
+    zb = [[9e9] * W for _ in range(H)]
+    for namn, pivot, kuber in ben:
+        deg = pose.get(namn, (0, 0, 0))
+        for c in kuber:
+            ox, oy, oz = c["origin"]; w, h, d = c["size"]; U, V = c["uv"]
+            F = rr.faces(U, V, w, h, d)
+            fns = {"top": lambda a, b: (ox + a * w, oy + h, oz + b * d),
+                   "bottom": lambda a, b: (ox + a * w, oy, oz + b * d),
+                   "north": lambda a, b: (ox + a * w, oy + (1 - b) * h, oz),
+                   "south": lambda a, b: (ox + a * w, oy + (1 - b) * h, oz + d),
+                   "east": lambda a, b: (ox + w, oy + (1 - b) * h, oz + a * d),
+                   "west": lambda a, b: (ox, oy + (1 - b) * h, oz + a * d)}
+            for fnamn, fn in fns.items():
+                u0, v0, fw, fh = F[fnamn]; skugga = rr.SH[fnamn]
+                steg = max(int(max(fw, fh) * sc * 1.6), 10)
+                for i in range(steg + 1):
+                    for j in range(steg + 1):
+                        a, b = i / steg, j / steg
+                        p = fn(a, b)
+                        X, Y, Z = cam(rr.rot(p, pivot, deg) if any(deg) else p)
+                        px = int(X * sc + offx); py = int(H - (Y * sc + offy))
+                        if not (0 <= px < W and 0 <= py < H) or Z >= zb[py][px]:
+                            continue
+                        col = tex[min(th - 1, max(0, int(v0 + b * fh)))][
+                            min(tw - 1, max(0, int(u0 + a * fw)))]
+                        if col[3] < 8:
+                            continue
+                        cv[py][px] = (int(col[0] * skugga), int(col[1] * skugga),
+                                      int(col[2] * skugga), 255)
+                        zb[py][px] = Z
+    return cv
+
+
+def ark():
+    """Kontaktkarta: varje ras framifrån-snett och i profil."""
+    raser = rasklient()
+    RUTA, KOL = 200, 4
+    rader = math.ceil(len(raser) / KOL)
+    W, H = RUTA * KOL, RUTA * rader
+    duk = [[(16, 18, 24, 255)] * W for _ in range(H)]
+    for i, (rasid, geoid, tex) in enumerate(raser):
+        bild = rita(geoid, tex, RUTA, RUTA, bar=1 if i % 3 == 0 else 0)
+        rx, ry = (i % KOL) * RUTA, (i // KOL) * RUTA
+        for y in range(RUTA):
+            for x in range(RUTA):
+                duk[ry + y][rx + x] = bild[y][x]
+        for x in range(RUTA):                       # rutnät
+            duk[ry][rx + x] = (60, 66, 80, 255)
+        for y in range(RUTA):
+            duk[ry + y][rx] = (60, 66, 80, 255)
+    os.makedirs(f"{BASE}/publish", exist_ok=True)
+    rr.write_png(f"{BASE}/publish/dogs.png", W, H, duk)
+    print(f"  publish/dogs.png ({W}x{H}) — {', '.join(r[0] for r in raser)}")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        rasid = sys.argv[1]
+        geoid, tex = next((g, t) for r, g, t in rasklient() if r == rasid)
+        rr.write_png(f"{BASE}/publish/dog-{rasid}.png", 400, 400,
+                     rita(geoid, tex, 400, 400, bar=1))
+        print(f"  publish/dog-{rasid}.png")
+    else:
+        ark()

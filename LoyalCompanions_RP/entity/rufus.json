@@ -10,7 +10,7 @@
         "default": "textures/entity/rufus"
       },
       "geometry": {
-        "default": "geometry.hund"
+        "default": "geometry.hund_hang"
       },
       "animations": {
         "walk": "animation.quadruped.walk",

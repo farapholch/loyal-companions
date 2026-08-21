@@ -2,15 +2,15 @@
   "format_version": "1.10.0",
   "minecraft:client_entity": {
     "description": {
-      "identifier": "hund:kelda",
+      "identifier": "hund:bruno",
       "materials": {
         "default": "entity_alphatest"
       },
       "textures": {
-        "default": "textures/entity/kelda"
+        "default": "textures/entity/bruno"
       },
       "geometry": {
-        "default": "geometry.hund_normal"
+        "default": "geometry.hund_tung"
       },
       "animations": {
         "walk": "animation.quadruped.walk",
@@ -28,7 +28,7 @@
         "controller.render.hund"
       ],
       "spawn_egg": {
-        "texture": "dc_kelda",
+        "texture": "dc_bruno",
         "texture_index": 0
       }
     }

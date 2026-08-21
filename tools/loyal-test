@@ -40,7 +40,7 @@ python3 /opt/purrfect-companions/tools/pngkoll.py "$SRC/LoyalCompanions_RP" | se
 echo
 echo "[2/3] Struktur"
 STRUKT=$(python3 - "$SRC" <<'PY'
-import json, glob, os, struct, sys
+import json, glob, os, re, struct, sys
 SRC = sys.argv[1]; bad = []
 bp = json.load(open(f"{SRC}/LoyalCompanions_BP/manifest.json"))
 rp = json.load(open(f"{SRC}/LoyalCompanions_RP/manifest.json"))
@@ -95,11 +95,28 @@ for f in sorted(glob.glob(f"{SRC}/LoyalCompanions_RP/entity/*.json")):
 # de isär går hunden fram till en pinne som skriptet sedan struntar i.
 gen = open(f"{SRC}/tools/make_dogs.py").read()
 js = open(f"{SRC}/LoyalCompanions_BP/scripts/main.js").read()
-import re
 g1 = set(re.findall(r'"([a-z:_]+)"', re.search(r"APPORTBARA = \[(.*?)\]", gen, re.S).group(1)))
 g1 |= {"hund:boll"} if 'f"{NS}:boll"' in gen else set()
 g2 = set(re.findall(r'"([a-z:_]+)":', re.search(r"APPORTBARA = \{(.*?)\}", js, re.S).group(1)))
 if g1 != g2: bad.append(f"APPORTBARA skiljer: generatorn {sorted(g1)} mot skriptet {sorted(g2)}")
+# BIOMTAGGEN MÅSTE FINNAS. "mountain" ser rimlig ut, heter "extreme_hills" och
+# ger en ras som helt enkelt aldrig dyker upp i världen — utan ett ord någonstans.
+# Facit är vaniljas BIOMDEFINITIONER, inte dess spawnregler: taggar som
+# "forest" är fullt giltiga men används inte av någon vanilla-regel, och en
+# lista dragen ur spawnreglerna underkände dem.
+VANILJ = "/opt/bds/server/behavior_packs/vanilla/biomes"
+if os.path.isdir(VANILJ):
+    kanda = set()
+    for f in glob.glob(f"{VANILJ}/*.json"):
+        b = json.load(open(f))["minecraft:biome"]
+        kanda |= set(b.get("components", {}).get("minecraft:tags", {}).get("tags")
+                     or b.get("description", {}).get("tags") or [])
+    for f in glob.glob(f"{SRC}/LoyalCompanions_BP/spawn_rules/*.json"):
+        d = json.load(open(f))["minecraft:spawn_rules"]
+        for v in d["conditions"]:
+            t = v.get("minecraft:biome_filter", {}).get("value")
+            if t and t not in kanda:
+                bad.append(f"{os.path.basename(f)}: biomtaggen '{t}' finns inte i vanilla")
 # varje entitet ska ha ett namn i språkfilen, annars ser spelaren en rånyckel
 lang = open(f"{SRC}/LoyalCompanions_RP/texts/en_US.lang", encoding="utf-8").read()
 for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
