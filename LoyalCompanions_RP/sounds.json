@@ -1,0 +1,119 @@
+{
+  "format_version": "1.14.0",
+  "entity_sounds": {
+    "entities": {
+      "hund:truffle": {
+        "volume": 0.9,
+        "pitch": [
+          1.11,
+          1.27
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:rufus": {
+        "volume": 0.9,
+        "pitch": [
+          0.89,
+          1.05
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:kelda": {
+        "volume": 0.9,
+        "pitch": [
+          0.92,
+          1.08
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:pepper": {
+        "volume": 0.9,
+        "pitch": [
+          0.95,
+          1.11
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:pickle": {
+        "volume": 0.9,
+        "pitch": [
+          1.04,
+          1.2
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:bruno": {
+        "volume": 0.9,
+        "pitch": [
+          0.8,
+          0.96
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:dot": {
+        "volume": 0.9,
+        "pitch": [
+          0.92,
+          1.08
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      },
+      "hund:scout": {
+        "volume": 0.9,
+        "pitch": [
+          1.07,
+          1.23
+        ],
+        "events": {
+          "ambient": "mob.wolf.bark",
+          "hurt": "mob.wolf.hurt",
+          "death": "mob.wolf.death",
+          "step": "mob.wolf.step",
+          "ambient.tame": "mob.wolf.panting"
+        }
+      }
+    }
+  }
+}

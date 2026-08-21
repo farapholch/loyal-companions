@@ -194,6 +194,23 @@ cd "$SRV" || exit 1
   echo "scriptevent hund:test_apport kor"; sleep 20
   echo "testfor @e[name=Apporttest,has_property={hund:bar=1}]"; sleep 1
   echo "kill @e[name=Apporttest]"; sleep 1
+  # VALPEN. Parningen själv går inte att köra utan två hundar i kärlekshumör
+  # och en spelare med kött, men det parningen SLUTAR med — hund:fodd på ungen
+  # — går att prova direkt, och det är där felen sitter: en valp som föds otämjd
+  # eller som aldrig växer upp.
+  echo "summon hund:pepper \"Valptest\" 10 21 10"; sleep 2
+  echo "event entity @e[name=Valptest] hund:fodd"; sleep 1
+  echo "testfor @e[name=Valptest,has_property={hund:tam=1}]"; sleep 1
+  echo "event entity @e[name=Valptest] hund:grow_up"; sleep 1
+  echo "testfor @e[name=Valptest,has_property={hund:tam=1}]"; sleep 1
+  echo "kill @e[name=Valptest]"; sleep 1
+  # HALSBANDET. Färgen är en egenskap som renderarkontrollern läser; att den
+  # SYNS går inte att prova här, men att den sätts gör det.
+  echo "summon hund:dot \"Halstest\" 10 21 10"; sleep 2
+  echo "event entity @e[name=Halstest] hund:on_tame"; sleep 1
+  echo "event entity @e[name=Halstest] hund:halsband_5"; sleep 1
+  echo "testfor @e[name=Halstest,has_property={hund:halsband=5}]"; sleep 1
+  echo "kill @e[name=Halstest]"; sleep 1
   sleep 2; echo "stop"; sleep 8
 } | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
 pkill -9 -x bedrock_server 2>/dev/null
@@ -204,12 +221,16 @@ TAM=$(grep -c "Found entity.hund:" "$LOG")
 HARD=$(grep -ciE "Syntax error|unknown component|invalid" "$LOG")
 LAGE=$(grep -c "Found Lagetest" "$LOG")
 APPORT=$(grep -c "Found Apporttest" "$LOG")
+VALP=$(grep -c "Found Valptest" "$LOG")
+HALS=$(grep -c "Found Halstest" "$LOG")
 CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
 [ "$SUM" -ge "$ANTAL" ] && ok "alla raser spawnar ($SUM/$ANTAL: $RASER)" || bad "bara $SUM/$ANTAL spawnade"
 [ "$TAM" -ge "$ANTAL" ] && ok "tämjningen sätter hund:tam ($TAM/$ANTAL, has_property)" || bad "bara $TAM/$ANTAL blev tämjda"
 [ "$LAGE" -ge 4 ] && ok "kommandolägena växlar: följer -> stannar -> vaktar -> följer ($LAGE/4)" || bad "lägesväxlingen gav $LAGE/4"
 [ "$APPORT" -ge 1 ] && ok "apporten: hunden hämtar bollen själv (pickup_items navigerar)" || bad "hunden hämtade INTE bollen (se APPORT-TEST i $LOG)"
+[ "$VALP" -ge 2 ] && ok "valpen föds tämjd och växer upp ($VALP/2)" || bad "valpkedjan gav $VALP/2"
+[ "$HALS" -ge 1 ] && ok "halsbandet sätter hund:halsband" || bad "halsbandet sattes inte"
 [ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
 if [ -n "$CL" ] && [ -s "$CL" ] && grep -v '\[Scripting\]\[inform\]' "$CL" | grep -q '[^[:space:]]'; then
   bad "innehållsfel i $(basename "$CL")"; grep -v '^[[:space:]]*$' "$CL" | head -4 | sed 's/^/     /'

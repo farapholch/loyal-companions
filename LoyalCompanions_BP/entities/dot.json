@@ -33,6 +33,15 @@
           ],
           "default": 0,
           "client_sync": true
+        },
+        "hund:halsband": {
+          "type": "int",
+          "range": [
+            0,
+            8
+          ],
+          "default": 0,
+          "client_sync": true
         }
       }
     },
@@ -79,6 +88,11 @@
       },
       "minecraft:behavior.random_look_around": {
         "priority": 9
+      },
+      "minecraft:ambient_sound_interval": {
+        "value": 7.0,
+        "range": 12.0,
+        "event_name": "ambient"
       },
       "minecraft:shareables": {
         "all_items": false,
@@ -198,6 +212,230 @@
               },
               "play_sounds": "beacon.power",
               "interact_text": "action.interact.command"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "red_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_1",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "orange_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_2",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "yellow_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_3",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "lime_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_4",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "light_blue_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_5",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "blue_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_6",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "purple_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_7",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
+            },
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "pink_dye"
+                    }
+                  ]
+                },
+                "event": "hund:halsband_8",
+                "target": "self"
+              },
+              "use_item": true,
+              "play_sounds": "armor.equip_leather",
+              "interact_text": "action.interact.collar"
             }
           ]
         }
@@ -401,6 +639,51 @@
             }
           }
         ]
+      },
+      "hund:halsband_1": {
+        "set_property": {
+          "hund:halsband": 1
+        }
+      },
+      "hund:halsband_2": {
+        "set_property": {
+          "hund:halsband": 2
+        }
+      },
+      "hund:halsband_3": {
+        "set_property": {
+          "hund:halsband": 3
+        }
+      },
+      "hund:halsband_4": {
+        "set_property": {
+          "hund:halsband": 4
+        }
+      },
+      "hund:halsband_5": {
+        "set_property": {
+          "hund:halsband": 5
+        }
+      },
+      "hund:halsband_6": {
+        "set_property": {
+          "hund:halsband": 6
+        }
+      },
+      "hund:halsband_7": {
+        "set_property": {
+          "hund:halsband": 7
+        }
+      },
+      "hund:halsband_8": {
+        "set_property": {
+          "hund:halsband": 8
+        }
+      },
+      "hund:halsband_av": {
+        "set_property": {
+          "hund:halsband": 0
+        }
       },
       "hund:apport_pa": {
         "add": {

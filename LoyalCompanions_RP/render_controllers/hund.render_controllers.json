@@ -23,6 +23,30 @@
         },
         {
           "mun_ben": "q.property('hund:bar') == 3"
+        },
+        {
+          "hals1": "q.property('hund:halsband') == 1"
+        },
+        {
+          "hals2": "q.property('hund:halsband') == 2"
+        },
+        {
+          "hals3": "q.property('hund:halsband') == 3"
+        },
+        {
+          "hals4": "q.property('hund:halsband') == 4"
+        },
+        {
+          "hals5": "q.property('hund:halsband') == 5"
+        },
+        {
+          "hals6": "q.property('hund:halsband') == 6"
+        },
+        {
+          "hals7": "q.property('hund:halsband') == 7"
+        },
+        {
+          "hals8": "q.property('hund:halsband') == 8"
         }
       ]
     }

@@ -78,6 +78,13 @@ def kroppsdelar(bh=7, kl=12, kb=7, kh=7, hs=6, oron="upp", ludd=False):
         d.append(("svans", "tail", None, [-1.5, bh + kh - 1, kl / 2 - 2.5], [3, 4, 4.5]))
     else:
         d.append(("svans", "tail", None, [-1, bh + kh - 2, kl / 2], [2, 6, 2]))
+    # HALSBANDET: en kub per färg kring halsen, alla på samma plats. Bara den
+    # som hund:halsband pekar ut visas. Åtta kuber i stället för en tintad är
+    # inte elegant, men renderarkontroller kan bara tända och släcka BEN — de
+    # kan inte färga ett enskilt ben, och en tint hade färgat hela hunden.
+    for i, (namn, _f) in enumerate(HALSBAND, 1):
+        d.append(("hals", f"hals{i}", "body", [-kb / 2 - 0.4, bh + kh - 3.5, -kl / 2 - 0.4],
+                  [kb + 0.8, 2, 2.4]))
     # BOLLEN I MUNNEN: en kub per sort vid nosen, hängd i huvudbenet så den
     # följer med när hunden tittar sig omkring. Renderarkontrollern visar den
     # som hund:bar pekar ut.
@@ -97,7 +104,15 @@ PIVOT = lambda bh, kl, kb, kh, hs: {
     "tail": [0, bh + kh - 2, kl / 2],
     "mun_boll": [0, bh + 6, -kl / 2], "mun_pinne": [0, bh + 6, -kl / 2],
     "mun_ben": [0, bh + 6, -kl / 2],
+    **{f"hals{i}": [0, bh + kh / 2, -kl / 2] for i in range(1, 9)},
 }
+
+# Färgerna man kan sätta på sin hund, i den ordning hund:halsband räknar dem.
+# (färgämnets id, färg)
+HALSBAND = [("red", (176, 46, 38)), ("orange", (216, 122, 30)),
+            ("yellow", (232, 196, 48)), ("lime", (110, 190, 46)),
+            ("light_blue", (86, 166, 220)), ("blue", (52, 72, 176)),
+            ("purple", (134, 66, 186)), ("pink", (230, 130, 176))]
 
 # (namn, benhöjd, kroppslängd, kroppsbredd, kroppshöjd, huvud, öron, ludd)
 KROPPAR = {
@@ -177,7 +192,9 @@ def renderarkontroller():
                 {"*": True},
                 {"mun_boll": "q.property('hund:bar') == 1"},
                 {"mun_pinne": "q.property('hund:bar') == 2"},
-                {"mun_ben": "q.property('hund:bar') == 3"}]}}},
+                {"mun_ben": "q.property('hund:bar') == 3"},
+                *[{f"hals{i}": f"q.property('hund:halsband') == {i}"}
+                  for i in range(1, len(HALSBAND) + 1)]]}}},
         open(f"{RP}/render_controllers/hund.render_controllers.json", "w"), indent=2)
 
 
@@ -200,6 +217,7 @@ def pals(rasid, delar, uv, farg):
     Att måla ur SAMMA tabell som geometrin byggs av är hela poängen — UV och
     bild kan då inte glida isär."""
     px = [[(0, 0, 0, 0)] * TW for _ in range(TH)]
+    halsraknare = [0]        # halsbandskuberna kommer i HALSBANDs ordning
 
     def rect(x0, y0, w, h, c):
         for y in range(int(y0), int(math.ceil(y0 + h))):
@@ -213,8 +231,12 @@ def pals(rasid, delar, uv, farg):
         u, v = uv[i]
         f = rr.faces(u, v, b, h, d)
         sidor.setdefault(roll, []).append((f, size))
-        grund = MUNFARG.get(roll) or {"krage": farg["under"],
-                                      "ora": farg["skugga"]}.get(roll, farg["pals"])
+        if roll == "hals":
+            grund = HALSBAND[halsraknare[0]][1]
+            halsraknare[0] = (halsraknare[0] + 1) % len(HALSBAND)
+        else:
+            grund = MUNFARG.get(roll) or {"krage": farg["under"],
+                                          "ora": farg["skugga"]}.get(roll, farg["pals"])
         for namn, (fx, fy, fw, fh) in f.items():
             rect(fx, fy, fw, fh, sh(grund, SIDSKUGGA[namn]))
 
@@ -383,7 +405,10 @@ def entitet(rasid, skala):
                             # 0 inget, 1 boll, 2 pinne, 3 ben — vilken av
                             # munkuberna renderaren ska visa
                             f"{NS}:bar": {"type": "int", "range": [0, 3],
-                                          "default": 0, "client_sync": True}}},
+                                          "default": 0, "client_sync": True},
+                            # 0 inget halsband, annars färgens nummer i HALSBAND
+                            f"{NS}:halsband": {"type": "int", "range": [0, len(HALSBAND)],
+                                               "default": 0, "client_sync": True}}},
         "components": {
             "minecraft:type_family": {"family": ["dc_hund", "mob"]},
             "minecraft:health": {"value": 20, "max": 20},
@@ -397,6 +422,10 @@ def entitet(rasid, skala):
             "minecraft:behavior.panic": {"priority": 1, "speed_multiplier": 1.4},
             "minecraft:behavior.look_at_player": {"priority": 8, "look_distance": 8},
             "minecraft:behavior.random_look_around": {"priority": 9},
+            # SKÄLLET. event_name pekar in i sounds.json; går namnet fel blir
+            # det tyst utan felmeddelande.
+            "minecraft:ambient_sound_interval": {"value": 7.0, "range": 12.0,
+                                                 "event_name": "ambient"},
             # INGEN minecraft:equippable. Den satt här först, i tron att
             # pickup_items behövde någonstans att lägga bytet. Den registreras
             # inte ens: skriptet ser ingen equippable-komponent på hunden, och
@@ -442,7 +471,18 @@ def entitet(rasid, skala):
                          "value": "bone"}]},
                         "event": f"{NS}:nasta_lage", "target": "self"},
                     "play_sounds": "beacon.power",
-                    "interact_text": "action.interact.command"}]},
+                    "interact_text": "action.interact.command"},
+                    # HALSBANDET SÄTTS MED FÄRGÄMNE. Samma väg som kommandot:
+                    # en interaktion per färg, filtrerad på vad ägaren håller i.
+                    *[{"on_interact": {"filters": {"all_of": [
+                        {"test": "is_family", "subject": "other", "value": "player"},
+                        {"test": "is_owner", "subject": "other"},
+                        {"test": "has_equipment", "domain": "hand", "subject": "other",
+                         "value": f"{f}_dye"}]},
+                        "event": f"{NS}:halsband_{i}", "target": "self"},
+                        "use_item": True, "play_sounds": "armor.equip_leather",
+                        "interact_text": "action.interact.collar"}
+                      for i, (f, _c) in enumerate(HALSBAND, 1)]]},
             },
             f"{NS}:foljer": {
                 "minecraft:behavior.follow_owner": {"priority": 6, "speed_multiplier": 1.15,
@@ -519,6 +559,9 @@ def entitet(rasid, skala):
                  "set_property": {f"{NS}:lage": 1},
                  "add": {"component_groups": [f"{NS}:stannar"]},
                  "remove": {"component_groups": [f"{NS}:foljer", f"{NS}:vaktar"]}}]},
+            **{f"{NS}:halsband_{i}": {"set_property": {f"{NS}:halsband": i}}
+               for i in range(1, len(HALSBAND) + 1)},
+            f"{NS}:halsband_av": {"set_property": {f"{NS}:halsband": 0}},
             f"{NS}:apport_pa": {"add": {"component_groups": [f"{NS}:apporterar"]}},
             f"{NS}:apport_av": {"remove": {"component_groups": [f"{NS}:apporterar"]}},
             "minecraft:entity_spawned": {"add": {"component_groups": [f"{NS}:vuxen"]}},
@@ -563,6 +606,30 @@ def spawnregel(rasid, biom):
         open(f"{BP}/spawn_rules/{rasid}.json", "w"), indent=2)
 
 
+def ljud():
+    """Rösterna. Vi har inga egna ljudfiler och kan inte göra några här, så
+    hundarna lånar vargens ljudhändelser — de finns i varje installation.
+
+    TONHÖJDEN SKILJER RASERNA ÅT. En bernhardshund och en pomeranian som låter
+    exakt likadant är två skinn på samma hund; skalan styr pitchen, så den
+    lilla gnyr ljust och den tunga morrar mörkt.
+
+    Går ett händelsenamn fel blir det TYST, utan ett ord i någon logg — det
+    finns ingen facitlista att kontrollera mot på servern (BDS resurspaket
+    innehåller inga ljud). Därför bara vargens välkända namn."""
+    ent = {}
+    for rasid, _namn, _ras, _kropp, skala, _biom, _farg in RASER:
+        pitch = round(1.6 - 0.6 * skala, 2)
+        ent[f"{NS}:{rasid}"] = {
+            "volume": 0.9, "pitch": [round(pitch - 0.08, 2), round(pitch + 0.08, 2)],
+            "events": {"ambient": "mob.wolf.bark", "hurt": "mob.wolf.hurt",
+                       "death": "mob.wolf.death", "step": "mob.wolf.step",
+                       "ambient.tame": "mob.wolf.panting"}}
+    json.dump({"format_version": "1.14.0",
+               "entity_sounds": {"entities": ent}},
+              open(f"{RP}/sounds.json", "w"), indent=2)
+
+
 def bollen():
     """Apportbollen: föremålet man kastar, plus dess recept och ikon.
 
@@ -603,6 +670,7 @@ if __name__ == "__main__":
         os.makedirs(f"{RP}/{m}", exist_ok=True)
     delar, uv = skriv_geometrier()
     renderarkontroller()
+    ljud()
     lang = []
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
     for rasid, namn, ras, kropp, skala, biom, farg in RASER:
@@ -619,6 +687,7 @@ if __name__ == "__main__":
     bollen()
     itex["texture_data"]["dc_boll"] = {"textures": "textures/items/dc_boll"}
     lang += [f"item.{NS}:boll.name=Fetch Ball", "action.interact.command=Command",
+             "action.interact.collar=Put on collar",
              # SKRIPTETS KVITTON hör hemma i tabellen, inte i skriptet. Lades de
              # till i .lang-filen för hand försvann de nästa gång generatorn
              # kördes, för den skriver om filen från grunden.

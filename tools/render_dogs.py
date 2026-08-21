@@ -37,13 +37,17 @@ def rasklient():
     return ut
 
 
-def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, bakgrund=(22, 26, 34, 255)):
+def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, halsband=0,
+         bakgrund=(22, 26, 34, 255)):
     tw, th, tex = rr.read_png(f"{RP}/{texnamn}.png")
     geo = GEO[geoid]
     ya, pa = math.radians(yaw), math.radians(pitch)
     # MUNKUBERNA visas bara när hunden bär något — annars ligger boll, pinne och
     # ben i högen samtidigt, precis det renderarkontrollern finns för att hindra.
     dolda = {n for i, n in enumerate(("mun_boll", "mun_pinne", "mun_ben"), 1) if i != bar}
+    # HALSBANDEN ligger alla på samma plats, ett ben per färg; visas de
+    # samtidigt blir det en enda grötig ring.
+    dolda |= {f"hals{i}" for i in range(1, 9) if i != halsband}
 
     def cam(p):
         x, y, z = p
@@ -102,7 +106,8 @@ def ark():
     W, H = RUTA * KOL, RUTA * rader
     duk = [[(16, 18, 24, 255)] * W for _ in range(H)]
     for i, (rasid, geoid, tex) in enumerate(raser):
-        bild = rita(geoid, tex, RUTA, RUTA, bar=1 if i % 3 == 0 else 0)
+        bild = rita(geoid, tex, RUTA, RUTA, bar=1 if i % 3 == 0 else 0,
+                    halsband=(i % 8) + 1)
         rx, ry = (i % KOL) * RUTA, (i // KOL) * RUTA
         for y in range(RUTA):
             for x in range(RUTA):
@@ -121,7 +126,7 @@ if __name__ == "__main__":
         rasid = sys.argv[1]
         geoid, tex = next((g, t) for r, g, t in rasklient() if r == rasid)
         rr.write_png(f"{BASE}/publish/dog-{rasid}.png", 400, 400,
-                     rita(geoid, tex, 400, 400, bar=1))
+                     rita(geoid, tex, 400, 400, bar=1, halsband=5))
         print(f"  publish/dog-{rasid}.png")
     else:
         ark()
