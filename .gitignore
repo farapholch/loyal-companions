@@ -3,3 +3,5 @@ __pycache__/
 .shipped.tsv
 .modmate-code
 .curseforge-token
+variants.private.json
+publish/

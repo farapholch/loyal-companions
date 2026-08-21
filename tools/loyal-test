@@ -161,8 +161,12 @@ cd "$SRV" || exit 1
   # ARENAN MÅSTE RYMMA APPORTEN. Första försöket grävde 6..14 och lade sedan
   # bollen åtta block bort på x=18 — utanför fickan, nere i berget. Testet sa
   # "hunden hämtade inte bollen" när bollen aldrig var åtkomlig.
-  echo "fill 2 19 2 26 19 26 stone"; sleep 1
-  echo "fill 2 20 2 26 26 26 air"; sleep 1
+  # ARENAN ÄR EN KORRIDOR, inte en kub: visseltestet flyttar hunden trettio
+  # block bort och den måste stå på mark hela vägen. Hamnar den i berget dör
+  # den, och testet rapporterar "visslan hämtade inte hem hunden" när det som
+  # hände var att hunden kvävdes.
+  echo "fill 2 19 2 46 19 22 stone"; sleep 1
+  echo "fill 2 20 2 46 26 22 air"; sleep 1
   for r in $RASER; do
     echo "summon hund:$r 10 21 10"; sleep 2
     echo "event entity @e[type=hund:$r] hund:on_tame"; sleep 1
@@ -211,6 +215,15 @@ cd "$SRV" || exit 1
   echo "event entity @e[name=Halstest] hund:halsband_5"; sleep 1
   echo "testfor @e[name=Halstest,has_property={hund:halsband=5}]"; sleep 1
   echo "kill @e[name=Halstest]"; sleep 1
+  # VISSLAN och GRÄVANDET. Båda utlöses normalt av en spelare, som testet inte
+  # har; krokarna kör samma funktioner med en plats i stället.
+  echo "summon hund:kelda \"Visseltest\" 10 21 10"; sleep 2
+  echo "event entity @e[name=Visseltest] hund:on_tame"; sleep 1
+  echo "event entity @e[name=Visseltest] hund:nasta_lage"; sleep 1
+  echo "scriptevent hund:test_vissla kor"; sleep 6
+  echo "testfor @e[name=Visseltest,has_property={hund:lage=0}]"; sleep 1
+  echo "scriptevent hund:test_grav kor"; sleep 4
+  echo "kill @e[name=Visseltest]"; sleep 1
   sleep 2; echo "stop"; sleep 8
 } | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
 pkill -9 -x bedrock_server 2>/dev/null
@@ -223,6 +236,9 @@ LAGE=$(grep -c "Found Lagetest" "$LOG")
 APPORT=$(grep -c "Found Apporttest" "$LOG")
 VALP=$(grep -c "Found Valptest" "$LOG")
 HALS=$(grep -c "Found Halstest" "$LOG")
+VISSEL=$(grep -c "VISSEL-TEST OK" "$LOG")
+GRAV=$(grep -c "GRAV-TEST OK" "$LOG")
+LAGEATER=$(grep -c "Found Visseltest" "$LOG")
 CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
 [ "$SUM" -ge "$ANTAL" ] && ok "alla raser spawnar ($SUM/$ANTAL: $RASER)" || bad "bara $SUM/$ANTAL spawnade"
@@ -231,9 +247,17 @@ CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$APPORT" -ge 1 ] && ok "apporten: hunden hämtar bollen själv (pickup_items navigerar)" || bad "hunden hämtade INTE bollen (se APPORT-TEST i $LOG)"
 [ "$VALP" -ge 2 ] && ok "valpen föds tämjd och växer upp ($VALP/2)" || bad "valpkedjan gav $VALP/2"
 [ "$HALS" -ge 1 ] && ok "halsbandet sätter hund:halsband" || bad "halsbandet sattes inte"
+[ "$VISSEL" -ge 1 ] && ok "visslan kallar hem hunden" || bad "visslan hämtade inte hem hunden"
+[ "$LAGEATER" -ge 1 ] && ok "visslan sätter hunden i följaläge igen" || bad "hunden stod kvar i fel läge efter visslan"
+[ "$GRAV" -ge 1 ] && ok "hunden gräver upp något" || bad "grävandet gav inget fynd"
 [ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
-if [ -n "$CL" ] && [ -s "$CL" ] && grep -v '\[Scripting\]\[inform\]' "$CL" | grep -q '[^[:space:]]'; then
-  bad "innehållsfel i $(basename "$CL")"; grep -v '^[[:space:]]*$' "$CL" | head -4 | sed 's/^/     /'
+# VISA DE RADER SOM FÄLLDE KÖRNINGEN, inte filens första fyra. Den gamla
+# utskriften visade [inform]-rader som passerat grinden medan den riktiga
+# varningen låg längre ner — det såg ut som att kvittona var felet.
+CLREST=""
+[ -n "$CL" ] && CLREST=$(grep -v '^[[:space:]]*$' "$CL" | grep -v '\[Scripting\]\[inform\]' || true)
+if [ -n "$CLREST" ]; then
+  bad "innehållsfel i $(basename "$CL")"; echo "$CLREST" | head -5 | sed 's/^/     /'
 else ok "inga innehållsfel"; fi
 
 echo

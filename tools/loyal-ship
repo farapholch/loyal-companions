@@ -1,0 +1,126 @@
+#!/bin/bash
+# Bygg → testa → paketera → skicka till Mod Mate, i ett kommando.
+# Vägrar skicka om loyal-test hittar fel.
+#
+# Användning:  tools/loyal-ship                 # testa + paketera + ladda upp (familjen)
+#              tools/loyal-ship --bump minor    # höj version (major|minor|patch) först
+#              tools/loyal-ship --public        # publika varianten
+#              tools/loyal-ship --no-upload     # bygg + testa, men skicka inte
+set -u
+SRC=/opt/loyal-companions
+BUMP=""; UPLOAD=1; VARIANT="private"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --bump) case "${2:-}" in major|minor|patch) BUMP="$2"; shift 2;; *) BUMP=patch; shift;; esac;;
+    --no-upload) UPLOAD=0; shift;;
+    --public) VARIANT="public"; shift;;
+    --private) VARIANT="private"; shift;;
+    *) echo "okänt argument: $1"; exit 1;;
+  esac
+done
+
+if [ -n "$BUMP" ]; then
+  python3 - "$SRC" "$BUMP" <<'PY'
+import json, sys
+SRC, kind = sys.argv[1], sys.argv[2]
+BP = f"{SRC}/LoyalCompanions_BP/manifest.json"; RP = f"{SRC}/LoyalCompanions_RP/manifest.json"
+bp = json.load(open(BP)); rp = json.load(open(RP))
+v = list(bp["header"]["version"]); i = {"major": 0, "minor": 1, "patch": 2}[kind]
+v[i] += 1
+for j in range(i + 1, 3): v[j] = 0
+for m in (bp, rp):
+    m["header"]["version"] = v
+    for mod in m["modules"]: mod["version"] = v
+for d in bp.get("dependencies", []):
+    if d.get("uuid") == rp["header"]["uuid"]: d["version"] = v
+json.dump(bp, open(BP, "w"), indent=2); json.dump(rp, open(RP, "w"), indent=2)
+print("ny version: " + ".".join(map(str, v)))
+PY
+fi
+
+VER=$(python3 -c "import json;print('.'.join(map(str,json.load(open('$SRC/LoyalCompanions_BP/manifest.json'))['header']['version'])))")
+
+echo "=== testar v$VER ($VARIANT) innan leverans ==="
+if ! "$SRC/tools/loyal-test"; then
+  echo; echo "❌ TESTET FAILADE — skickar INTE. Fixa felen och kör igen."
+  exit 1
+fi
+
+STAGE="/tmp/loyal-stage-$VARIANT"
+python3 "$SRC/make_variant.py" "$VARIANT" "$STAGE" | sed 's/^/   /'
+SLUG=$(python3 -c "
+import json,re
+n=json.load(open('$STAGE/LoyalCompanions_BP/manifest.json'))['header']['name']
+print(re.sub(r'[^a-z0-9]+','-',n.lower()).strip('-'))")
+OUT="/tmp/$SLUG-v$VER.mcaddon"
+rm -f "$OUT"
+( cd "$STAGE" && zip -r -q "$OUT" LoyalCompanions_BP LoyalCompanions_RP )
+SHA=$(sha256sum "$OUT" | cut -d' ' -f1)
+
+# PRIVATA NAMN I PUBLIK FIL. Kattpaketets publika .mcaddon bar familjens namn i
+# KOMMENTARER i main.js — osynligt i spelet, fullt läsbart för den som packar
+# upp filen. Namnen läses ur variants.private.json, så listan kan inte bli
+# gammal när en hund byter namn.
+if [ "$VARIANT" = "public" ]; then
+  LACKA=$(python3 - "$OUT" "$SRC" <<'PYNAMN'
+import json, os, sys, zipfile
+fil, src = sys.argv[1], sys.argv[2]
+pf = f"{src}/variants.private.json"
+namn = set()
+if os.path.exists(pf):
+    for cfg in json.load(open(pf, encoding="utf-8")).values():
+        for slug, disp in (cfg.get("names") or {}).values():
+            namn |= {slug.lower(), disp.lower()}
+z = zipfile.ZipFile(fil); traff = []
+for n in z.namelist():
+    if n.endswith((".json", ".lang", ".js", ".txt", ".md")):
+        d = z.read(n).decode("utf-8", "ignore").lower()
+        traff += [f"{n}: {p}" for p in namn if p in d]
+print("\n".join(traff))
+PYNAMN
+)
+  if [ -n "$LACKA" ]; then
+    echo "❌ AVBRYTER: privata hundnamn i den publika filen"
+    echo "$LACKA" | sed 's/^/   /'
+    exit 1
+  fi
+  echo "🔒 inga privata namn i den publika filen"
+fi
+echo "📦 paketerad: $(basename "$OUT") ($(du -h "$OUT" | cut -f1))"
+
+# Två filer med samma pack-uuid OCH samma version men olika innehåll får
+# Minecraft att vägra ladda den ena. Loggboken gör om det till ett stopp.
+# Zip-arkiv är inte reproducerbara (tidsstämplar), så arkivets sha duger inte
+# för att avgöra om innehållet ändrats — filerna hashas i stället.
+LEDGER="$SRC/.shipped.tsv"
+CONTENT_SHA=$(cd "$STAGE" && find . -type f | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -d" " -f1)
+if PREV=$(grep -P "^$VER\t$VARIANT\t" "$LEDGER" 2>/dev/null | tail -1 | cut -f3); [ -n "$PREV" ]; then
+  if [ "$PREV" != "$CONTENT_SHA" ]; then
+    echo "❌ v$VER ($VARIANT) är redan utskickad med ANNAT innehåll"
+    echo "   Höj versionen (--bump patch) — skicka aldrig samma version två gånger."
+    exit 1
+  fi
+  echo "   (samma innehåll som redan utskickad v$VER — skickar om)"
+fi
+
+[ "$UPLOAD" -eq 0 ] && { echo "(--no-upload: hoppar över Mod Mate)"; exit 0; }
+
+# Mod Mate-koden är knuten till appen, inte till projektet — kattpaketets kod
+# duger lika bra om hundprojektet inte har en egen.
+CODE_FILE="$SRC/.modmate-code"
+[ -f "$CODE_FILE" ] || CODE_FILE=/opt/purrfect-companions/.modmate-code
+if [ ! -f "$CODE_FILE" ]; then
+  echo "❌ ingen Mod Mate-kod sparad. Lägg transfer-koden i $SRC/.modmate-code"
+  exit 1
+fi
+CODE=$(tr -d '[:space:]' < "$CODE_FILE")
+RESP=$(curl -s --max-time 120 -X POST -F "file=@$OUT;type=application/octet-stream" \
+  "https://modmate.dev/ModMateTransfer/upload?code=$CODE")
+echo "☁️  Mod Mate: $RESP"
+if echo "$RESP" | grep -q "$SHA"; then
+  echo "✅ checksumma verifierad — filen kom fram intakt"
+  printf '%s\t%s\t%s\n' "$VER" "$VARIANT" "$CONTENT_SHA" >> "$LEDGER"
+else
+  echo "⚠️  checksumman i svaret matchar inte lokal fil ($SHA) — kontrollera manuellt"
+  exit 1
+fi

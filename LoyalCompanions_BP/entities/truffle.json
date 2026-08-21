@@ -685,6 +685,22 @@
           "hund:halsband": 0
         }
       },
+      "hund:till_foljer": {
+        "set_property": {
+          "hund:lage": 0
+        },
+        "add": {
+          "component_groups": [
+            "hund:foljer"
+          ]
+        },
+        "remove": {
+          "component_groups": [
+            "hund:stannar",
+            "hund:vaktar"
+          ]
+        }
+      },
       "hund:apport_pa": {
         "add": {
           "component_groups": [

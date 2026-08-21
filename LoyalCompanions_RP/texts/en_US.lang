@@ -29,3 +29,7 @@ hund.apport.klar=Your dog brings it back.
 hund.lage.0=Follow
 hund.lage.1=Stay
 hund.lage.2=Guard
+hund.vissla.kom=Your dogs come running.
+hund.vissla.ingen=No dogs answered.
+hund.grav=Your dog dug something up.
+hund.vakt=Your dog growls at something nearby.

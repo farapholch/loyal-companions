@@ -28,6 +28,9 @@
     },
     "dc_boll": {
       "textures": "textures/items/dc_boll"
+    },
+    "dc_vissla": {
+      "textures": "textures/items/dc_vissla"
     }
   }
 }

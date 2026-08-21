@@ -562,6 +562,13 @@ def entitet(rasid, skala):
             **{f"{NS}:halsband_{i}": {"set_property": {f"{NS}:halsband": i}}
                for i in range(1, len(HALSBAND) + 1)},
             f"{NS}:halsband_av": {"set_property": {f"{NS}:halsband": 0}},
+            # VISSLAN sätter hunden i följaläge oavsett var den stod. Utan den
+            # här händelsen kommer en hund i stannaläge springande och blir
+            # sedan stående — då är visslan en teleport, inte ett kommando.
+            f"{NS}:till_foljer": {"set_property": {f"{NS}:lage": 0},
+                                  "add": {"component_groups": [f"{NS}:foljer"]},
+                                  "remove": {"component_groups": [f"{NS}:stannar",
+                                                                  f"{NS}:vaktar"]}},
             f"{NS}:apport_pa": {"add": {"component_groups": [f"{NS}:apporterar"]}},
             f"{NS}:apport_av": {"remove": {"component_groups": [f"{NS}:apporterar"]}},
             "minecraft:entity_spawned": {"add": {"component_groups": [f"{NS}:vuxen"]}},
@@ -604,6 +611,49 @@ def spawnregel(rasid, biom):
                         "minecraft:biome_filter": {"test": "has_biome_tag",
                                                    "operator": "==", "value": biom}}]}},
         open(f"{BP}/spawn_rules/{rasid}.json", "w"), indent=2)
+
+
+def visslan():
+    """Hundvisslan: ett tryck och alla dina hundar kommer.
+
+    Att leta reda på en hund som blivit kvar tre dalar bort är inte roligt, och
+    ett stannakommando man glömt är den vanligaste vägen dit. Visslan är därför
+    inte en genväg förbi mekaniken — den är räddningen ur den."""
+    json.dump({"format_version": "1.20.50", "minecraft:item": {
+        "description": {"identifier": f"{NS}:vissla",
+                        "menu_category": {"category": "equipment"}},
+        "components": {"minecraft:icon": {"texture": "dc_vissla"},
+                       "minecraft:display_name": {"value": "Dog Whistle"},
+                       "minecraft:max_stack_size": 1,
+                       # AVSVALNING i föremålet, inte i skriptet: spelaren ser
+                       # den snurra i handen och förstår varför inget händer.
+                       "minecraft:cooldown": {"category": "hund_vissla", "duration": 6.0}}}},
+        open(f"{BP}/items/vissla.json", "w"), indent=2)
+    json.dump({"format_version": "1.20.10", "minecraft:recipe_shapeless": {
+        "description": {"identifier": f"{NS}:vissla"},
+        "tags": ["crafting_table"],
+        "ingredients": [{"item": "minecraft:iron_ingot"}, {"item": "minecraft:bone"}],
+        "unlock": [{"item": "minecraft:bone"}],
+        "result": {"item": f"{NS}:vissla"}}},
+        open(f"{BP}/recipes/vissla.json", "w"), indent=2)
+    N = 16
+    px = [[(0, 0, 0, 0)] * N for _ in range(N)]
+
+    def rect(x0, y0, w, h, c):
+        for y in range(y0, y0 + h):
+            for x in range(x0, x0 + w):
+                if 0 <= x < N and 0 <= y < N:
+                    px[y][x] = c
+    METALL, LJUS, MORK = (186, 190, 198, 255), (232, 236, 242, 255), (108, 112, 122, 255)
+    rect(3, 6, 10, 5, METALL)          # visselpipans kropp
+    rect(3, 6, 10, 1, LJUS)
+    rect(3, 10, 10, 1, MORK)
+    rect(1, 7, 3, 3, METALL)           # munstycket
+    rect(1, 7, 3, 1, LJUS)
+    rect(8, 8, 3, 1, MORK)             # ljudspringan
+    rect(12, 3, 2, 4, MORK)            # ögla att hänga i
+    rect(11, 2, 4, 1, MORK)
+    rr.write_png(f"{RP}/textures/items/dc_vissla.png", N, N, px)
 
 
 def ljud():
@@ -685,14 +735,20 @@ if __name__ == "__main__":
                  f"item.spawn_egg.entity.{NS}:{rasid}.name=Spawn {namn}"]
         print(f"  {namn:8} {ras:22} {kropp:7} skala {skala:<5} biom {biom}")
     bollen()
+    visslan()
     itex["texture_data"]["dc_boll"] = {"textures": "textures/items/dc_boll"}
+    itex["texture_data"]["dc_vissla"] = {"textures": "textures/items/dc_vissla"}
     lang += [f"item.{NS}:boll.name=Fetch Ball", "action.interact.command=Command",
              "action.interact.collar=Put on collar",
              # SKRIPTETS KVITTON hör hemma i tabellen, inte i skriptet. Lades de
              # till i .lang-filen för hand försvann de nästa gång generatorn
              # kördes, för den skriver om filen från grunden.
              f"{NS}.apport.klar=Your dog brings it back.",
-             f"{NS}.lage.0=Follow", f"{NS}.lage.1=Stay", f"{NS}.lage.2=Guard"]
+             f"{NS}.lage.0=Follow", f"{NS}.lage.1=Stay", f"{NS}.lage.2=Guard",
+             f"{NS}.vissla.kom=Your dogs come running.",
+             f"{NS}.vissla.ingen=No dogs answered.",
+             f"{NS}.grav=Your dog dug something up.",
+             f"{NS}.vakt=Your dog growls at something nearby."]
     json.dump(itex, open(f"{RP}/textures/item_texture.json", "w"), indent=2)
     for pack in (BP, RP):
         for spr in ("en_US", "sv_SE"):

@@ -114,6 +114,36 @@ system.runInterval(() => {
 
       if (prop(h, "hund:tam", 0) !== 1) continue;
 
+      st.klocka = (st.klocka ?? Math.floor(Math.random() * GRAVPAUS)) + 5;
+      if (st.klocka >= GRAVPAUS) {
+        st.klocka = 0;
+        // bara när någon ser det: en hund som gräver i en tom chunk är bara
+        // skräp på marken
+        const pl = agare(h);
+        if (pl && avstand(pl.location, h.location) < 16) grav(h);
+      }
+
+      // VAKTENS VARNING. Hunden morrar när något fientligt närmar sig, men
+      // bara i vaktläge och med lång paus — kattpaketets varning sa "your cat
+      // bristles" så ofta att den blev tapet, och det var det första Pelle
+      // klagade på.
+      if (lage === 2) {
+        st.morr = (st.morr ?? 0) - 5;
+        if (st.morr <= 0) {
+          let fiende = false;
+          try {
+            fiende = d.getEntities({ families: ["monster"], location: h.location,
+                                     maxDistance: 10 }).length > 0;
+          } catch { }
+          if (fiende) {
+            st.morr = 400;
+            const pl = agare(h);
+            try { d.playSound("mob.wolf.growl", h.location); } catch { }
+            if (pl && avstand(pl.location, h.location) < 24) sag(pl, "hund.vakt");
+          }
+        }
+      }
+
       if (prop(h, "hund:bar", 0) !== 0) {
         // HEMVÄGEN. Apportläget är av, så follow_owner tar hunden hem av sig
         // själv; skriptet väntar bara på att den ska komma fram.
@@ -188,6 +218,92 @@ system.runInterval(() => {
   for (const id of minne.keys()) if (!levande.has(id)) minne.delete(id);
 }, 5);
 
+// ---------------------------------------------------------------------------
+// VISSLAN. Ett tryck och alla dina hundar kommer — och går tillbaka till att
+// följa. Att leta reda på en hund som blivit kvar tre dalar bort är inte
+// roligt, och ett glömt stannakommando är den vanligaste vägen dit.
+const VISSELRADIE = 96;
+
+function vissla(plats, pl) {
+  const d = world.getDimension("overworld");
+  let n = 0;
+  for (const h of hundar(d)) {
+    try {
+      if (prop(h, "hund:tam", 0) !== 1) continue;
+      if (avstand(h.location, plats) > VISSELRADIE) continue;
+      if (pl) {
+        const a = agare(h);
+        if (a && a.id !== pl.id) continue;
+      }
+      // TILLBAKA TILL FÖLJA. Kommer hunden springande och sedan står kvar för
+      // att den är i stannaläge är visslan bara en teleport, inte ett kommando.
+      if (prop(h, "hund:lage", 0) !== 0) {
+        try { h.triggerEvent("hund:till_foljer"); } catch { }
+      }
+      const v = 1.6 + (n % 4) * 0.7, vinkel = (n % 8) * Math.PI / 4;
+      try {
+        h.teleport({ x: plats.x + Math.cos(vinkel) * v, y: plats.y,
+                     z: plats.z + Math.sin(vinkel) * v });
+      } catch (fel) { console.warn("[hund] VISSLA: teleport misslyckades " + fel); continue; }
+      try {
+        d.playSound("mob.wolf.bark", h.location);
+        for (let i = 0; i < 5; i++)
+          d.spawnParticle("minecraft:villager_happy",
+            { x: h.location.x, y: h.location.y + 0.8 + i * 0.1, z: h.location.z });
+      } catch { }
+      n++;
+    } catch (fel) { console.warn("[hund] VISSLA: " + fel); }
+  }
+  return n;
+}
+
+try {
+  world.afterEvents.itemUse.subscribe(ev => {
+    try {
+      if (ev.itemStack?.typeId !== "hund:vissla") return;
+      const pl = ev.source;
+      const n = vissla(pl.location, pl);
+      sag(pl, n ? "hund.vissla.kom" : "hund.vissla.ingen");
+      try { pl.dimension.playSound("random.orb", pl.location); } catch { }
+    } catch { }
+  });
+} catch { }
+
+// ---------------------------------------------------------------------------
+// GRÄVANDET. En hund som bara går bredvid är en tapet. Med jämna mellanrum
+// gräver den upp något ur marken — mest skräp, ibland något värt att ha.
+// AVSVALNINGEN ÄR LÅNG med flit: hittar hunden guld var tionde sekund är den
+// inte en hund längre, den är en gruva.
+const GRAVPAUS = 5400;                        // 4,5 minuter i tick
+const SKATT = [
+  ["minecraft:bone", 40], ["minecraft:stick", 40], ["minecraft:string", 30],
+  ["minecraft:wheat_seeds", 25], ["minecraft:leather", 15], ["minecraft:rotten_flesh", 15],
+  ["minecraft:iron_nugget", 10], ["minecraft:flint", 10], ["minecraft:gold_nugget", 5],
+  ["minecraft:lapis_lazuli", 3], ["minecraft:emerald", 1],
+];
+const SKATTVIKT = SKATT.reduce((a, b) => a + b[1], 0);
+
+function grav(h) {
+  const d = world.getDimension("overworld");
+  let r = Math.floor(Math.random() * SKATTVIKT);
+  let vald = SKATT[0][0];
+  for (const [id, vikt] of SKATT) {
+    if (r < vikt) { vald = id; break; }
+    r -= vikt;
+  }
+  const L = h.location;
+  try {
+    d.spawnItem(new ItemStack(vald, 1), { x: L.x, y: L.y + 0.4, z: L.z });
+    d.playSound("dig.gravel", L);
+    for (let i = 0; i < 8; i++)
+      d.spawnParticle("minecraft:crop_growth_emitter",
+        { x: L.x + (Math.random() - 0.5), y: L.y + 0.2, z: L.z + (Math.random() - 0.5) });
+  } catch { return null; }
+  const pl = agare(h);
+  if (pl) sag(pl, "hund.grav");
+  return vald;
+}
+
 // TESTKROK: /scriptevent hund:test_apport lägger en boll åtta block från en
 // tämjd hund. Att den hamnar i munnen läses sedan av testet som en egenskap
 // (has_property={hund:bar=1}) — ett kvitto från spelet självt, inte från
@@ -221,5 +337,52 @@ try {
           + ` apport=${st ? st.apport : "-"} bar=${prop(k, "hund:bar", "-")}`);
       }, 20);
     } catch (e) { console.warn("[hund] APPORT-TEST FEL: " + e); }
+  });
+} catch { }
+
+// TESTKROKAR för visslan och grävandet. Båda kräver egentligen en spelare —
+// visslan utlöses av att någon använder ett föremål, grävandet av att någon är
+// i närheten — och en simulerad spelare är osynlig för ett annat pakets skript.
+// Krokarna kör därför samma funktioner med en plats i stället för en spelare.
+try {
+  system.afterEvents.scriptEventReceive.subscribe(ev => {
+    const d = world.getDimension("overworld");
+    if (ev.id === "hund:test_vissla") {
+      // hunden flyttas långt bort och ska komma tillbaka av visslan ensam
+      const h = hundar(d).find(x => prop(x, "hund:tam", 0) === 1);
+      if (!h) { console.warn("[hund] VISSEL-TEST FEL: ingen tamd hund"); return; }
+      const mal = { x: 10, y: 21, z: 10 };
+      // TRETTIO BLOCK, inte fyrtio: bortom testvärldens korridor står hunden i
+      // berg, och en hund som kvävts kan ingen vissla hämta hem.
+      try { h.teleport({ x: mal.x + 30, y: mal.y, z: mal.z }); } catch (e) {
+        console.warn("[hund] VISSEL-TEST: teleport ut misslyckades " + e);
+      }
+      system.runTimeout(() => {
+        try {
+          const kvar = hundar(d).filter(x => prop(x, "hund:tam", 0) === 1);
+          console.log(`[hund] VISSEL-TEST: ${kvar.length} tamda hundar, avstand `
+            + kvar.map(x => avstand(x.location, mal).toFixed(1)).join("/"));
+          const n = vissla(mal, null);
+          const k = hundar(d).find(x => prop(x, "hund:tam", 0) === 1);
+          const a = k ? avstand(k.location, mal) : 999;
+          if (n && a < 5) console.log(`[hund] VISSEL-TEST OK: ${n} hund(ar), avstand ${a.toFixed(1)}`);
+          else console.warn(`[hund] VISSEL-TEST FEL: ${n} hund(ar), avstand ${a.toFixed(1)}`);
+        } catch (e) { console.warn("[hund] VISSEL-TEST FEL: " + e); }
+      }, 40);
+    }
+    if (ev.id === "hund:test_grav") {
+      const h = hundar(d).find(x => prop(x, "hund:tam", 0) === 1);
+      if (!h) { console.warn("[hund] GRAV-TEST FEL: ingen tamd hund"); return; }
+      const fynd = grav(h);
+      if (!fynd) { console.warn("[hund] GRAV-TEST FEL: inget grävdes upp"); return; }
+      system.runTimeout(() => {
+        try {
+          const kvar = d.getEntities({ type: "minecraft:item", location: h.location,
+                                       maxDistance: 6 }).length;
+          if (kvar) console.log(`[hund] GRAV-TEST OK: ${fynd} ligger pa marken`);
+          else console.warn("[hund] GRAV-TEST FEL: fyndet finns inte");
+        } catch (e) { console.warn("[hund] GRAV-TEST FEL: " + e); }
+      }, 20);
+    }
   });
 } catch { }
