@@ -2,7 +2,7 @@
   "format_version": "1.20.50",
   "minecraft:entity": {
     "description": {
-      "identifier": "hund:bailey",
+      "identifier": "hund:truffle",
       "is_spawnable": true,
       "is_summonable": true,
       "is_experimental": false,
@@ -89,12 +89,12 @@
       },
       "hund:vuxen": {
         "minecraft:scale": {
-          "value": 1.0
+          "value": 0.68
         }
       },
       "hund:valp": {
         "minecraft:scale": {
-          "value": 0.5
+          "value": 0.34
         },
         "minecraft:is_baby": {}
       }

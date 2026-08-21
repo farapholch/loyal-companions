@@ -89,12 +89,12 @@
       },
       "hund:vuxen": {
         "minecraft:scale": {
-          "value": 1.05
+          "value": 1.0
         }
       },
       "hund:valp": {
         "minecraft:scale": {
-          "value": 0.525
+          "value": 0.5
         },
         "minecraft:is_baby": {}
       }

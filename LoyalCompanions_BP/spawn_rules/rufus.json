@@ -2,7 +2,7 @@
   "format_version": "1.8.0",
   "minecraft:spawn_rules": {
     "description": {
-      "identifier": "hund:shadow",
+      "identifier": "hund:rufus",
       "population_control": "animal"
     },
     "conditions": [
@@ -27,7 +27,7 @@
         "minecraft:biome_filter": {
           "test": "has_biome_tag",
           "operator": "==",
-          "value": "plains"
+          "value": "forest"
         }
       }
     ]

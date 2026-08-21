@@ -2,12 +2,12 @@
   "format_version": "1.10.0",
   "minecraft:client_entity": {
     "description": {
-      "identifier": "hund:shadow",
+      "identifier": "hund:rufus",
       "materials": {
         "default": "entity_alphatest"
       },
       "textures": {
-        "default": "textures/entity/shadow"
+        "default": "textures/entity/rufus"
       },
       "geometry": {
         "default": "geometry.hund"
@@ -28,7 +28,7 @@
         "controller.render.default"
       ],
       "spawn_egg": {
-        "texture": "dc_shadow",
+        "texture": "dc_rufus",
         "texture_index": 0
       }
     }

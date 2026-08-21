@@ -6,21 +6,23 @@ machinery, other animal.
 
 ## The dogs
 
-| Entity | Name | Breed | Lives in |
-|---|---|---|---|
-| `hund:bailey` | Bailey | Golden Retriever | forest |
-| `hund:shadow` | Shadow | German Shepherd | plains |
-| `hund:kelda` | Kelda | Siberian Husky | taiga |
-| `hund:peach` | Peach | Pomeranian | plains |
+Four dogs, chosen so you can tell them apart in half a second: they differ in
+**size, colour and silhouette** at the same time. One light, one dark, one
+cool-toned, one small and fluffy.
+
+| Entity | Name | Breed | Look | Scale | Lives in |
+|---|---|---|---|---|---|
+| `hund:truffle` | Truffle | Pomeranian | Dark sable with tan legs and a bushy tail over her back | 0.68 | plains |
+| `hund:rufus` | Rufus | Golden Retriever | Warm gold with cream legs | 1.05 | forest |
+| `hund:kelda` | Kelda | Siberian Husky | Silver-grey and white, blue eyes | 1.00 | taiga |
+| `hund:pepper` | Pepper | Border Collie | Black with a white chest and white paws | 0.95 | plains |
 
 Tame them with **bones** — a third of the time per bone, so it costs a few.
 
-Names and coats are placeholders for the public variant; the family build
-carries real dogs, the way the cats do — Peach is **Truffle** there.
-
-Peach uses her own geometry (`geometry.hund_ludd`): the base model plus a neck
-ruff and a bushy tail that lies over her back. A Pomeranian scaled down from a
-guard dog is just a wolf puppy; the fluff is what makes her a Pomeranian.
+Truffle is **Truffle** in the family build, the way the cats carry their real
+names there. She has her own geometry (`geometry.hund_ludd`): the base model
+plus a neck ruff and a bushy tail. A Pomeranian scaled down from a guard dog
+is just a wolf puppy; the fluff is what makes her a Pomeranian.
 
 ## What is planned
 

@@ -2,17 +2,17 @@
   "resource_pack_name": "loyal",
   "texture_name": "atlas.items",
   "texture_data": {
-    "dc_bailey": {
-      "textures": "textures/items/dc_bailey"
+    "dc_truffle": {
+      "textures": "textures/items/dc_truffle"
     },
-    "dc_shadow": {
-      "textures": "textures/items/dc_shadow"
+    "dc_rufus": {
+      "textures": "textures/items/dc_rufus"
     },
     "dc_kelda": {
       "textures": "textures/items/dc_kelda"
     },
-    "dc_peach": {
-      "textures": "textures/items/dc_peach"
+    "dc_pepper": {
+      "textures": "textures/items/dc_pepper"
     }
   }
 }

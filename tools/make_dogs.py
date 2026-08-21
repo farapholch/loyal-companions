@@ -59,17 +59,28 @@ def geometri_ludd():
 
 # (id, visningsnamn, ras, päls, skugga, undersida, ögon, skala, biom, ludd)
 RASER = [
-    ("bailey", "Bailey", "Golden Retriever",
-     (212, 168, 96), (176, 132, 68), (238, 214, 168), (86, 58, 34), 1.00, "forest", False),
-    ("shadow", "Shadow", "German Shepherd",
-     (92, 68, 44), (44, 34, 26), (176, 138, 86), (60, 40, 24), 1.10, "plains", False),
+    # KVARTETTEN ÄR VALD PÅ KONTRAST, inte på vilka raser som är populärast.
+    # Fyra hundar som ska gå att skilja åt på en halv sekund kräver spridning i
+    # tre saker samtidigt: storlek, färg och siluett. Samma insikt som
+    # kattpaketets logga gav — det är kontrasten som gör att man ser VAD något
+    # är, inte detaljerna.
+    #
+    #   Truffle  liten, mörk, luddig      (familjens Truffle)
+    #   Rufus    stor, varmt guld, slät
+    #   Kelda    mellan, silvergrå, blå ögon
+    #   Pepper   mellan, svart med vit bringa
+    #
+    # (id, namn, ras, päls, skugga, undersida, ögon, skala, biom, ludd)
+    ("truffle", "Truffle", "Pomeranian",
+     (74, 54, 42), (44, 32, 26), (156, 114, 74), (206, 150, 70), 0.68, "plains", True),
+    ("rufus", "Rufus", "Golden Retriever",
+     (214, 166, 92), (172, 126, 62), (240, 216, 170), (92, 62, 36), 1.05, "forest", False),
     ("kelda", "Kelda", "Siberian Husky",
-     (188, 192, 200), (96, 102, 112), (240, 242, 246), (96, 178, 210), 1.05, "taiga", False),
-    # POMERANIAN: liten och orange, med krage och yvig svans. Skalan 0.68 är
-    # vald mot de andra — en pom går knappt spelaren till knäna.
-    ("peach", "Peach", "Pomeranian",
-     (226, 146, 62), (182, 108, 40), (246, 206, 150), (74, 48, 28), 0.68, "plains", True),
+     (176, 182, 192), (88, 96, 108), (242, 244, 248), (96, 178, 210), 1.00, "taiga", False),
+    ("pepper", "Pepper", "Border Collie",
+     (44, 42, 46), (26, 24, 28), (238, 238, 234), (118, 84, 48), 0.95, "plains", False),
 ]
+
 
 
 def sh(c, k):

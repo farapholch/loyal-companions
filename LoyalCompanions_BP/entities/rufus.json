@@ -2,7 +2,7 @@
   "format_version": "1.20.50",
   "minecraft:entity": {
     "description": {
-      "identifier": "hund:shadow",
+      "identifier": "hund:rufus",
       "is_spawnable": true,
       "is_summonable": true,
       "is_experimental": false,
@@ -89,12 +89,12 @@
       },
       "hund:vuxen": {
         "minecraft:scale": {
-          "value": 1.1
+          "value": 1.05
         }
       },
       "hund:valp": {
         "minecraft:scale": {
-          "value": 0.55
+          "value": 0.525
         },
         "minecraft:is_baby": {}
       }

@@ -2,12 +2,12 @@
   "format_version": "1.10.0",
   "minecraft:client_entity": {
     "description": {
-      "identifier": "hund:bailey",
+      "identifier": "hund:pepper",
       "materials": {
         "default": "entity_alphatest"
       },
       "textures": {
-        "default": "textures/entity/bailey"
+        "default": "textures/entity/pepper"
       },
       "geometry": {
         "default": "geometry.hund"
@@ -28,7 +28,7 @@
         "controller.render.default"
       ],
       "spawn_egg": {
-        "texture": "dc_bailey",
+        "texture": "dc_pepper",
         "texture_index": 0
       }
     }
