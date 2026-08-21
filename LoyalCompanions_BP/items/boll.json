@@ -1,0 +1,20 @@
+{
+  "format_version": "1.20.50",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hund:boll",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "texture": "dc_boll"
+      },
+      "minecraft:display_name": {
+        "value": "Fetch Ball"
+      },
+      "minecraft:max_stack_size": 1
+    }
+  }
+}

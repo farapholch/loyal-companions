@@ -58,6 +58,11 @@ def geometri_ludd():
 
 
 # (id, visningsnamn, ras, päls, skugga, undersida, ögon, skala, biom, ludd)
+# Det hunden går och hämtar. Bollen är vår egen, pinnen och benet finns i
+# spelet — kastar man en pinne åt en hund ska det bara fungera.
+APPORTBARA = [f"{NS}:boll", "minecraft:stick", "minecraft:bone"]
+RACKVIDD = 16          # hur långt hunden letar efter något att hämta
+
 RASER = [
     # KVARTETTEN ÄR VALD PÅ KONTRAST, inte på vilka raser som är populärast.
     # Fyra hundar som ska gå att skilja åt på en halv sekund kräver spridning i
@@ -154,8 +159,17 @@ def entitet(rasid, namn, skala):
     e = {"format_version": "1.20.50", "minecraft:entity": {
         "description": {"identifier": f"{NS}:{rasid}", "is_spawnable": True,
                         "is_summonable": True, "is_experimental": False,
-                        "properties": {f"{NS}:tam": {"type": "int", "range": [0, 1],
-                                                     "default": 0, "client_sync": True}}},
+                        "properties": {
+                            f"{NS}:tam": {"type": "int", "range": [0, 1],
+                                          "default": 0, "client_sync": True},
+                            # LÄGET: 0 följer, 1 stannar, 2 vaktar. Egen egenskap
+                            # i stället för skriptminne — då överlever det
+                            # världsomstart, och kommandot syns i selektorer så
+                            # testet kan läsa tillbaka det.
+                            f"{NS}:lage": {"type": "int", "range": [0, 2],
+                                           "default": 0, "client_sync": True},
+                            f"{NS}:bar": {"type": "int", "range": [0, 1],
+                                          "default": 0, "client_sync": True}}},
         "components": {
             "minecraft:type_family": {"family": ["dc_hund", "mob"]},
             "minecraft:health": {"value": 20, "max": 20},
@@ -171,24 +185,109 @@ def entitet(rasid, namn, skala):
             "minecraft:behavior.random_look_around": {"priority": 9},
             # TÄMJNING MED BEN, inte fisk. 0.33 per försök: några ben, inte ett
             # — att tämja ska kosta något, som hos katterna.
+            # INGEN minecraft:equippable. Den satt här först, i tron att
+            # pickup_items behövde någonstans att lägga bytet. Den registreras
+            # inte ens: skriptet ser ingen equippable-komponent på hunden, och
+            # vanilla FÖRSTÖR föremålet när moben når fram (även med
+            # minecraft:inventory monterad — den platsen förblev tom). Därför
+            # äger skriptet bärandet: det plockar bort bollen strax innan
+            # vanilla hinner, och sätter hund:bar. Vaniljas enda uppgift är att
+            # gå dit.
+            # SHAREABLES ÄR NYCKELN TILL APPORTEN, och den kostade sex
+            # serverkörningar att hitta. minecraft:behavior.pickup_items ensam
+            # gör INGENTING: hunden fick beteendet, gruppen lades till, och den
+            # gick ändå aldrig fram till bollen — i alla varianter vi provade
+            # (i grupp, i baskomponenterna, med och utan equippable, tämjd och
+            # otämjd). Räven i samma värld tog samma boll varje gång. Skillnaden
+            # var den här komponenten: den är mobens ÖNSKELISTA, och utan den
+            # finns det inget föremål som är värt att gå till.
+            "minecraft:shareables": {"all_items": False, "items": [
+                {"item": i, "want_amount": 1, "surplus_amount": 1, "priority": 0}
+                for i in APPORTBARA]},
             "minecraft:tameable": {"probability": 0.33, "tame_items": ["bone"],
                                    "tame_event": {"event": f"{NS}:on_tame", "target": "self"}},
         },
         "component_groups": {
             f"{NS}:tamed": {
                 "minecraft:is_tamed": {},
-                "minecraft:behavior.follow_owner": {"priority": 6, "speed_multiplier": 1.1,
-                                                    "start_distance": 8, "stop_distance": 2},
                 "minecraft:sittable": {},
                 "minecraft:behavior.stay_while_sitting": {"priority": 5},
+                # KOMMANDOT GES MED ETT BEN I HANDEN. Interaktioner i
+                # entitets-JSON är beprövade (kattpaketets tjugo plagg går den
+                # vägen); skriptets interaktionshändelse visade sig otillförlitlig
+                # i testmiljön, så den lutar vi oss inte mot här.
+                "minecraft:interact": {"interactions": [{
+                    "on_interact": {"filters": {"all_of": [
+                        {"test": "is_family", "subject": "other", "value": "player"},
+                        {"test": "is_owner", "subject": "other"},
+                        {"test": "has_equipment", "domain": "hand", "subject": "other",
+                         "value": "bone"}]},
+                        "event": f"{NS}:nasta_lage", "target": "self"},
+                    "play_sounds": "beacon.power",
+                    "interact_text": "action.interact.command"}]},
+            },
+            f"{NS}:foljer": {
+                "minecraft:behavior.follow_owner": {"priority": 6, "speed_multiplier": 1.15,
+                                                    "start_distance": 8, "stop_distance": 2},
+                "minecraft:behavior.random_stroll": {"priority": 12, "speed_multiplier": 0.8},
+            },
+            # STANNAR: inga förflyttningsbeteenden alls kvar utom panik. Hunden
+            # står kvar där du lämnade den, vilket är hela poängen med ett
+            # stannakommando — den ska INTE följa efter när du går.
+            f"{NS}:stannar": {},
+            f"{NS}:vaktar": {
+                "minecraft:behavior.follow_owner": {"priority": 8, "speed_multiplier": 1.0,
+                                                    "start_distance": 14, "stop_distance": 6},
+                "minecraft:behavior.owner_hurt_by_target": {"priority": 2},
+                "minecraft:behavior.owner_hurt_target": {"priority": 3},
+                "minecraft:behavior.nearest_attackable_target": {
+                    "priority": 4, "must_see": True, "reselect_targets": True,
+                    "within_radius": 12,
+                    "entity_types": [{"filters": {"any_of": [
+                        {"test": "is_family", "subject": "other", "value": "monster"}]},
+                        "max_dist": 12}]},
+                "minecraft:behavior.melee_attack": {"priority": 5},
+                "minecraft:attack": {"damage": 4},
+            },
+            # APPORT: vaniljas egen upplockning gör navigeringen åt oss. Att
+            # skriptstyra en entitet fram till ett föremål går inte — det finns
+            # ingen väg att sätta ett mål från skript — men pickup_items får
+            # hunden att gå dit själv.
+            f"{NS}:apporterar": {
+                # INGEN follow_owner HÄR. Den finns redan i hund:foljer med
+                # prioritet 6; två follow_owner samtidigt är två mål som slåss
+                # om samma hund. Upplockningen har lägre siffra och vinner
+                # därför över hemgåendet så länge bollen ligger kvar.
+                "minecraft:behavior.pickup_items": {
+                    "priority": 2, "max_dist": RACKVIDD, "goal_radius": 1.6,
+                    "speed_multiplier": 1.3, "pickup_based_on_chance": False,
+                    "track_target": True},
             },
             f"{NS}:vuxen": {"minecraft:scale": {"value": skala}},
             f"{NS}:valp": {"minecraft:scale": {"value": round(skala / 2, 3)},
                            "minecraft:is_baby": {}},
         },
         "events": {
-            f"{NS}:on_tame": {"add": {"component_groups": [f"{NS}:tamed"]},
+            f"{NS}:on_tame": {"add": {"component_groups": [f"{NS}:tamed", f"{NS}:foljer"]},
                               "set_property": {f"{NS}:tam": 1}},
+            # LÄGESVÄXLINGEN som en sekvens: villkoren läses uppifrån, så
+            # ordningen 2->0 före 1->2 före 0->1 hindrar att ett tryck faller
+            # rakt igenom alla tre steg i samma anrop.
+            f"{NS}:nasta_lage": {"sequence": [
+                {"filters": {"test": "int_property", "domain": f"{NS}:lage", "value": 2},
+                 "set_property": {f"{NS}:lage": 0},
+                 "add": {"component_groups": [f"{NS}:foljer"]},
+                 "remove": {"component_groups": [f"{NS}:stannar", f"{NS}:vaktar"]}},
+                {"filters": {"test": "int_property", "domain": f"{NS}:lage", "value": 1},
+                 "set_property": {f"{NS}:lage": 2},
+                 "add": {"component_groups": [f"{NS}:vaktar"]},
+                 "remove": {"component_groups": [f"{NS}:foljer", f"{NS}:stannar"]}},
+                {"filters": {"test": "int_property", "domain": f"{NS}:lage", "value": 0},
+                 "set_property": {f"{NS}:lage": 1},
+                 "add": {"component_groups": [f"{NS}:stannar"]},
+                 "remove": {"component_groups": [f"{NS}:foljer", f"{NS}:vaktar"]}}]},
+            f"{NS}:apport_pa": {"add": {"component_groups": [f"{NS}:apporterar"]}},
+            f"{NS}:apport_av": {"remove": {"component_groups": [f"{NS}:apporterar"]}},
             "minecraft:entity_spawned": {"add": {"component_groups": [f"{NS}:vuxen"]}},
             f"{NS}:grow_up": {"add": {"component_groups": [f"{NS}:vuxen"]},
                               "remove": {"component_groups": [f"{NS}:valp"]}},
@@ -226,6 +325,42 @@ def spawnregel(rasid, biom):
         open(f"{BP}/spawn_rules/{rasid}.json", "w"), indent=2)
 
 
+def bollen():
+    """Apportbollen: föremålet man kastar, plus dess recept och ikon.
+
+    Ull och slem — mjukt och studsigt, och båda finns tidigt i ett spel. Att
+    den är ett EGET föremål (och inte bara en pinne) gör att skriptet kan
+    skilja "kastad boll" från allt annat som ligger på marken; hunden ska
+    hämta bollen, inte spelarens tappade diamanter."""
+    json.dump({"format_version": "1.20.50", "minecraft:item": {
+        "description": {"identifier": f"{NS}:boll", "menu_category": {"category": "equipment"}},
+        "components": {"minecraft:icon": {"texture": "dc_boll"},
+                       "minecraft:display_name": {"value": "Fetch Ball"},
+                       "minecraft:max_stack_size": 1}}},
+        open(f"{BP}/items/boll.json", "w"), indent=2)
+    json.dump({"format_version": "1.20.10", "minecraft:recipe_shaped": {
+        "description": {"identifier": f"{NS}:boll"},
+        "tags": ["crafting_table"],
+        "pattern": [" W ", "WSW", " W "],
+        "key": {"W": {"item": "minecraft:white_wool"}, "S": {"item": "minecraft:slime_ball"}},
+        "unlock": [{"item": "minecraft:slime_ball"}],
+        "result": {"item": f"{NS}:boll"}}},
+        open(f"{BP}/recipes/boll.json", "w"), indent=2)
+    N = 16
+    px = [[(0, 0, 0, 0)] * N for _ in range(N)]
+    for y in range(N):
+        for x in range(N):
+            d = ((x - 7.5) ** 2 + (y - 7.5) ** 2) ** 0.5
+            if d < 6.4:
+                ljus = 1.0 - d / 16
+                px[y][x] = (int(196 + 50 * ljus), int(72 + 40 * ljus), int(72 + 30 * ljus), 255)
+            elif d < 7.2:
+                px[y][x] = (120, 40, 40, 255)
+    for x in range(4, 12):                      # söm, så den läser som en boll
+        px[7][x] = (240, 220, 210, 255)
+    rr.write_png(f"{RP}/textures/items/dc_boll.png", N, N, px)
+
+
 if __name__ == "__main__":
     lang = []
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
@@ -241,6 +376,14 @@ if __name__ == "__main__":
                  f"entity.{rasid}.name={namn} ({ras})",
                  f"item.spawn_egg.entity.{NS}:{rasid}.name=Spawn {namn}"]
         print(f"  {namn:8} {ras:18} skala {skala}  biom {biom}{'  (ludd)' if ludd else ''}")
+    bollen()
+    itex["texture_data"]["dc_boll"] = {"textures": "textures/items/dc_boll"}
+    lang += [f"item.{NS}:boll.name=Fetch Ball", "action.interact.command=Command",
+             # SKRIPTETS KVITTON hör hemma i tabellen, inte i skriptet. Lades de
+             # till i .lang-filen för hand försvann de nästa gång generatorn kördes,
+             # för den skriver om filen från grunden.
+             f"{NS}.apport.klar=Your dog brings the ball back.",
+             f"{NS}.lage.0=Follow", f"{NS}.lage.1=Stay", f"{NS}.lage.2=Guard"]
     json.dump(itex, open(f"{RP}/textures/item_texture.json", "w"), indent=2)
     for pack in (BP, RP):
         for spr in ("en_US", "sv_SE"):

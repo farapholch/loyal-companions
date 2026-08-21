@@ -15,6 +15,24 @@
           ],
           "default": 0,
           "client_sync": true
+        },
+        "hund:lage": {
+          "type": "int",
+          "range": [
+            0,
+            2
+          ],
+          "default": 0,
+          "client_sync": true
+        },
+        "hund:bar": {
+          "type": "int",
+          "range": [
+            0,
+            1
+          ],
+          "default": 0,
+          "client_sync": true
         }
       }
     },
@@ -62,6 +80,29 @@
       "minecraft:behavior.random_look_around": {
         "priority": 9
       },
+      "minecraft:shareables": {
+        "all_items": false,
+        "items": [
+          {
+            "item": "hund:boll",
+            "want_amount": 1,
+            "surplus_amount": 1,
+            "priority": 0
+          },
+          {
+            "item": "minecraft:stick",
+            "want_amount": 1,
+            "surplus_amount": 1,
+            "priority": 0
+          },
+          {
+            "item": "minecraft:bone",
+            "want_amount": 1,
+            "surplus_amount": 1,
+            "priority": 0
+          }
+        ]
+      },
       "minecraft:tameable": {
         "probability": 0.33,
         "tame_items": [
@@ -76,15 +117,103 @@
     "component_groups": {
       "hund:tamed": {
         "minecraft:is_tamed": {},
-        "minecraft:behavior.follow_owner": {
-          "priority": 6,
-          "speed_multiplier": 1.1,
-          "start_distance": 8,
-          "stop_distance": 2
-        },
         "minecraft:sittable": {},
         "minecraft:behavior.stay_while_sitting": {
           "priority": 5
+        },
+        "minecraft:interact": {
+          "interactions": [
+            {
+              "on_interact": {
+                "filters": {
+                  "all_of": [
+                    {
+                      "test": "is_family",
+                      "subject": "other",
+                      "value": "player"
+                    },
+                    {
+                      "test": "is_owner",
+                      "subject": "other"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "domain": "hand",
+                      "subject": "other",
+                      "value": "bone"
+                    }
+                  ]
+                },
+                "event": "hund:nasta_lage",
+                "target": "self"
+              },
+              "play_sounds": "beacon.power",
+              "interact_text": "action.interact.command"
+            }
+          ]
+        }
+      },
+      "hund:foljer": {
+        "minecraft:behavior.follow_owner": {
+          "priority": 6,
+          "speed_multiplier": 1.15,
+          "start_distance": 8,
+          "stop_distance": 2
+        },
+        "minecraft:behavior.random_stroll": {
+          "priority": 12,
+          "speed_multiplier": 0.8
+        }
+      },
+      "hund:stannar": {},
+      "hund:vaktar": {
+        "minecraft:behavior.follow_owner": {
+          "priority": 8,
+          "speed_multiplier": 1.0,
+          "start_distance": 14,
+          "stop_distance": 6
+        },
+        "minecraft:behavior.owner_hurt_by_target": {
+          "priority": 2
+        },
+        "minecraft:behavior.owner_hurt_target": {
+          "priority": 3
+        },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 4,
+          "must_see": true,
+          "reselect_targets": true,
+          "within_radius": 12,
+          "entity_types": [
+            {
+              "filters": {
+                "any_of": [
+                  {
+                    "test": "is_family",
+                    "subject": "other",
+                    "value": "monster"
+                  }
+                ]
+              },
+              "max_dist": 12
+            }
+          ]
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 5
+        },
+        "minecraft:attack": {
+          "damage": 4
+        }
+      },
+      "hund:apporterar": {
+        "minecraft:behavior.pickup_items": {
+          "priority": 2,
+          "max_dist": 16,
+          "goal_radius": 1.6,
+          "speed_multiplier": 1.3,
+          "pickup_based_on_chance": false,
+          "track_target": true
         }
       },
       "hund:vuxen": {
@@ -103,11 +232,93 @@
       "hund:on_tame": {
         "add": {
           "component_groups": [
-            "hund:tamed"
+            "hund:tamed",
+            "hund:foljer"
           ]
         },
         "set_property": {
           "hund:tam": 1
+        }
+      },
+      "hund:nasta_lage": {
+        "sequence": [
+          {
+            "filters": {
+              "test": "int_property",
+              "domain": "hund:lage",
+              "value": 2
+            },
+            "set_property": {
+              "hund:lage": 0
+            },
+            "add": {
+              "component_groups": [
+                "hund:foljer"
+              ]
+            },
+            "remove": {
+              "component_groups": [
+                "hund:stannar",
+                "hund:vaktar"
+              ]
+            }
+          },
+          {
+            "filters": {
+              "test": "int_property",
+              "domain": "hund:lage",
+              "value": 1
+            },
+            "set_property": {
+              "hund:lage": 2
+            },
+            "add": {
+              "component_groups": [
+                "hund:vaktar"
+              ]
+            },
+            "remove": {
+              "component_groups": [
+                "hund:foljer",
+                "hund:stannar"
+              ]
+            }
+          },
+          {
+            "filters": {
+              "test": "int_property",
+              "domain": "hund:lage",
+              "value": 0
+            },
+            "set_property": {
+              "hund:lage": 1
+            },
+            "add": {
+              "component_groups": [
+                "hund:stannar"
+              ]
+            },
+            "remove": {
+              "component_groups": [
+                "hund:foljer",
+                "hund:vaktar"
+              ]
+            }
+          }
+        ]
+      },
+      "hund:apport_pa": {
+        "add": {
+          "component_groups": [
+            "hund:apporterar"
+          ]
+        }
+      },
+      "hund:apport_av": {
+        "remove": {
+          "component_groups": [
+            "hund:apporterar"
+          ]
         }
       },
       "minecraft:entity_spawned": {

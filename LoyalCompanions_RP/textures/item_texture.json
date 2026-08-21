@@ -13,6 +13,9 @@
     },
     "dc_pepper": {
       "textures": "textures/items/dc_pepper"
+    },
+    "dc_boll": {
+      "textures": "textures/items/dc_boll"
     }
   }
 }
