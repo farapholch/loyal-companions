@@ -26,7 +26,8 @@ const GRIPAVSTAND = 2.2;       // här tar skriptet bollen innan vanilla äter d
 const HUND = "dc_hund";
 // Det hunden hämtar. Måste stämma med APPORTBARA i tools/make_dogs.py —
 // skriptet kan inte läsa entitets-JSON, så strukturtestet jämför listorna.
-const APPORTBARA = ["hund:boll", "minecraft:stick", "minecraft:bone"];
+// Värdet är också hund:bar, alltså vilken kub renderaren visar i munnen.
+const APPORTBARA = { "hund:boll": 1, "minecraft:stick": 2, "minecraft:bone": 3 };
 const LAGENAMN = ["hund.lage.0", "hund.lage.1", "hund.lage.2"];
 const BURET = "hund:buret";    // dynamisk egenskap: vad hunden bär
 
@@ -83,7 +84,7 @@ function foremalNara(dim, plats, radie) {
       .map(e => {
         let id = null;
         try { id = e.getComponent("minecraft:item")?.itemStack?.typeId; } catch { }
-        return APPORTBARA.includes(id) ? { e, id } : null;
+        return id in APPORTBARA ? { e, id } : null;
       })
       .filter(Boolean);
   } catch { return []; }
@@ -113,7 +114,7 @@ system.runInterval(() => {
 
       if (prop(h, "hund:tam", 0) !== 1) continue;
 
-      if (prop(h, "hund:bar", 0) === 1) {
+      if (prop(h, "hund:bar", 0) !== 0) {
         // HEMVÄGEN. Apportläget är av, så follow_owner tar hunden hem av sig
         // själv; skriptet väntar bara på att den ska komma fram.
         if (st.apport) { try { h.triggerEvent("hund:apport_av"); } catch { } st.apport = false; }
@@ -160,7 +161,7 @@ system.runInterval(() => {
         if (!kvar && st.jagar.avstand <= 3.5) tog = st.jagar.typ;
       }
       if (tog) {
-        satt(h, "hund:bar", 1);
+        satt(h, "hund:bar", APPORTBARA[tog] ?? 1);
         try { h.setDynamicProperty(BURET, tog); } catch { }
         try { h.triggerEvent("hund:apport_av"); } catch { }
         st.apport = false;

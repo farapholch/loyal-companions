@@ -25,7 +25,7 @@
         ]
       },
       "render_controllers": [
-        "controller.render.default"
+        "controller.render.hund"
       ],
       "spawn_egg": {
         "texture": "dc_rufus",

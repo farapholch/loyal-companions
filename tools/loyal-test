@@ -71,6 +71,35 @@ for f in sorted(glob.glob(f"{SRC}/LoyalCompanions_RP/entity/*.json")):
     ident = d["identifier"]
     if not os.path.exists(f"{SRC}/LoyalCompanions_BP/entities/{ident.split(':')[1]}.json"):
         bad.append(f"{namn}: ingen beteendeentitet")
+# RENDERARKONTROLLERN: hänvisar en klientdefinition till en kontroller som
+# inte finns visas ingenting alls, och pekar part_visibility på ett bennamn som
+# inte finns i geometrin tystnar raden — bollen i munnen skulle helt enkelt
+# aldrig synas, utan ett ord i någon logg.
+GEOBEN = set()
+for geo in json.load(open(f"{SRC}/LoyalCompanions_RP/models/entity/hund.geo.json"))["minecraft:geometry"]:
+    GEOBEN |= {b["name"] for b in geo["bones"]}
+KTRL = {}
+for f in glob.glob(f"{SRC}/LoyalCompanions_RP/render_controllers/*.json"):
+    KTRL.update(json.load(open(f))["render_controllers"])
+for namn, k in KTRL.items():
+    for regel in k.get("part_visibility", []):
+        for ben in regel:
+            if ben != "*" and ben not in GEOBEN:
+                bad.append(f"{namn}: part_visibility pekar på benet '{ben}' som geometrin saknar")
+for f in sorted(glob.glob(f"{SRC}/LoyalCompanions_RP/entity/*.json")):
+    d = json.load(open(f))["minecraft:client_entity"]["description"]
+    for rc in d.get("render_controllers", []):
+        if rc not in KTRL and not rc.startswith("controller.render.default"):
+            bad.append(f"{os.path.basename(f)}: renderarkontrollern {rc} finns inte")
+# APPORTBARA står på två ställen (skriptet kan inte läsa entitets-JSON). Glider
+# de isär går hunden fram till en pinne som skriptet sedan struntar i.
+gen = open(f"{SRC}/tools/make_dogs.py").read()
+js = open(f"{SRC}/LoyalCompanions_BP/scripts/main.js").read()
+import re
+g1 = set(re.findall(r'"([a-z:_]+)"', re.search(r"APPORTBARA = \[(.*?)\]", gen, re.S).group(1)))
+g1 |= {"hund:boll"} if 'f"{NS}:boll"' in gen else set()
+g2 = set(re.findall(r'"([a-z:_]+)":', re.search(r"APPORTBARA = \{(.*?)\}", js, re.S).group(1)))
+if g1 != g2: bad.append(f"APPORTBARA skiljer: generatorn {sorted(g1)} mot skriptet {sorted(g2)}")
 # varje entitet ska ha ett namn i språkfilen, annars ser spelaren en rånyckel
 lang = open(f"{SRC}/LoyalCompanions_RP/texts/en_US.lang", encoding="utf-8").read()
 for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):

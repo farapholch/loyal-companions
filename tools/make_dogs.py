@@ -38,6 +38,51 @@ LUDD_KUBER = [
 ]
 
 
+# BOLLEN I MUNNEN. Hunden bär det den hämtat som en synlig kub vid nosen, en
+# per sort, och renderarkontrollern visar den som hund:bar pekar ut. Kuberna
+# hänger i benet "head" så de följer med när hunden tittar sig omkring —
+# grundmodellens övriga ben har ingen förälder, men ett föremål i munnen som
+# står stilla medan huvudet vrider sig ser trasigt ut.
+# UV-BANDET y 19-25 är den enda lediga ytan i 64x64: kroppen slutar på y 19 och
+# huvudet börjar på y 26. Kuberna är därför 3x3x3 (fotavtryck 12x6), inte 4x4x4
+# (16x8), som inte får plats.
+MUN_KUBER = [
+    ("mun_boll", [0, 19], (196, 72, 72)),      # apportbollen
+    ("mun_pinne", [12, 19], (140, 102, 58)),   # pinne
+    ("mun_ben", [24, 19], (238, 236, 222)),    # ben
+]
+MUN_ORIGIN = [-1.5, 11.0, -14]
+MUN_SIZE = [3, 3, 3]
+
+
+def geometri_mun(g):
+    """Lägger munkuberna i BÅDA geometrierna — luddvarianten är en kopia av
+    grundmodellen och skulle annars tappa dem."""
+    for geo in g["minecraft:geometry"]:
+        namn = {b["name"] for b in geo["bones"]}
+        for ben, uv, _f in MUN_KUBER:
+            if ben in namn:
+                continue
+            geo["bones"].append({"name": ben, "parent": "head", "pivot": [0, 13, -6],
+                                 "cubes": [{"origin": MUN_ORIGIN, "size": MUN_SIZE, "uv": uv}]})
+
+
+def renderarkontroller():
+    """Egen renderarkontroller: controller.render.default visar allt, och då
+    skulle hunden alltid gå omkring med boll, pinne OCH ben i munnen."""
+    json.dump({"format_version": "1.10.0", "render_controllers": {
+        "controller.render.hund": {
+            "geometry": "Geometry.default",
+            "materials": [{"*": "Material.default"}],
+            "textures": ["Texture.default"],
+            "part_visibility": [
+                {"*": True},
+                {"mun_boll": "q.property('hund:bar') == 1"},
+                {"mun_pinne": "q.property('hund:bar') == 2"},
+                {"mun_ben": "q.property('hund:bar') == 3"}]}}},
+        open(f"{RP}/render_controllers/hund.render_controllers.json", "w"), indent=2)
+
+
 def geometri_ludd():
     """geometry.hund_ludd — grundmodellen plus krage och yvig svans."""
     g = json.load(open(f"{RP}/models/entity/hund.geo.json"))
@@ -54,6 +99,7 @@ def geometri_ludd():
             if b["name"] == benamn:
                 b.setdefault("cubes", []).append({"origin": origin, "size": size, "uv": uv})
     g["minecraft:geometry"] = [bas, ny]
+    geometri_mun(g)
     json.dump(g, open(f"{RP}/models/entity/hund.geo.json", "w"), indent=2)
 
 
@@ -130,6 +176,14 @@ def pals(rasid, pels, skugga, under, ogon, ludd=False):
                     ljus = 1.16 if y < uv[1] + math.ceil(bd) else (
                         0.72 if y == uv[1] + fh - 1 else 1.0)
                     ut[y][x] = sh(pels, ljus)
+    # MUNKUBERNAS färger är föremålens, inte hundens — samma för alla raser.
+    for _ben, uv, farg in MUN_KUBER:
+        bw, bh, bd = MUN_SIZE
+        fw, fh = 2 * (bd + bw), bd + bh
+        for y in range(uv[1], min(h, uv[1] + fh)):
+            for x in range(uv[0], min(w, uv[0] + fw)):
+                ljus = 1.2 if y < uv[1] + bd else (0.72 if y == uv[1] + fh - 1 else 1.0)
+                ut[y][x] = sh(farg, ljus)
     rr.write_png(f"{RP}/textures/entity/{rasid}.png", w, h, ut)
 
 
@@ -168,7 +222,9 @@ def entitet(rasid, namn, skala):
                             # testet kan läsa tillbaka det.
                             f"{NS}:lage": {"type": "int", "range": [0, 2],
                                            "default": 0, "client_sync": True},
-                            f"{NS}:bar": {"type": "int", "range": [0, 1],
+                            # 0 inget, 1 boll, 2 pinne, 3 ben — vilken av
+                            # munkuberna renderaren ska visa
+                            f"{NS}:bar": {"type": "int", "range": [0, 3],
                                           "default": 0, "client_sync": True}}},
         "components": {
             "minecraft:type_family": {"family": ["dc_hund", "mob"]},
@@ -306,7 +362,7 @@ def klient(rasid, ludd=False):
         "animations": {"walk": "animation.quadruped.walk",
                        "look_at_target": "animation.common.look_at_target"},
         "scripts": {"animate": [{"walk": "query.modified_move_speed"}, "look_at_target"]},
-        "render_controllers": ["controller.render.default"],
+        "render_controllers": ["controller.render.hund"],
         "spawn_egg": {"texture": f"dc_{rasid}", "texture_index": 0}}}}
     json.dump(d, open(f"{RP}/entity/{rasid}.json", "w"), indent=2)
 
@@ -365,6 +421,7 @@ if __name__ == "__main__":
     lang = []
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
     geometri_ludd()
+    renderarkontroller()
     for rasid, namn, ras, pels, skugga, under, ogon, skala, biom, ludd in RASER:
         pals(rasid, pels, skugga, under, ogon, ludd)
         ikon(rasid, pels, skugga, under, ogon)
