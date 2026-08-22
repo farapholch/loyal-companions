@@ -45,6 +45,19 @@ SRC = sys.argv[1]; bad = []
 bp = json.load(open(f"{SRC}/LoyalCompanions_BP/manifest.json"))
 rp = json.load(open(f"{SRC}/LoyalCompanions_RP/manifest.json"))
 if bp["header"]["version"] != rp["header"]["version"]: bad.append("BP- och RP-version skiljer")
+# MOTORKRAVET måste räcka till de format_version vi faktiskt använder, annars
+# ber paketet om en motor som inte kan läsa dess egna filer.
+mev = tuple(bp["header"].get("min_engine_version", [0, 0, 0]))
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/**/*.json", recursive=True):
+    d = json.load(open(f))
+    # world_*_packs.json och liknande är listor, inte objekt
+    fv = d.get("format_version") if isinstance(d, dict) else None
+    if not isinstance(fv, str):
+        continue
+    delar = tuple(int(x) for x in fv.split(".")[:3]) + (0,) * (3 - len(fv.split(".")[:3]))
+    if delar > mev:
+        bad.append(f"{os.path.basename(f)}: format_version {fv} > min_engine_version "
+                   f"{'.'.join(map(str, mev))}")
 dep = [d for d in bp.get("dependencies", []) if d.get("uuid") == rp["header"]["uuid"]]
 if not dep: bad.append("BP saknar beroende till RP")
 # geometrins texturstorlek måste stämma med PNG:en — annars läses UV i fel
@@ -117,11 +130,97 @@ if os.path.isdir(VANILJ):
             t = v.get("minecraft:biome_filter", {}).get("value")
             if t and t not in kanda:
                 bad.append(f"{os.path.basename(f)}: biomtaggen '{t}' finns inte i vanilla")
-# varje entitet ska ha ett namn i språkfilen, annars ser spelaren en rånyckel
-lang = open(f"{SRC}/LoyalCompanions_RP/texts/en_US.lang", encoding="utf-8").read()
+# VARJE VANILLA-FÖREMÅL VI NÄMNER MÅSTE FINNAS. Ett felstavat id i grävlistan
+# kastar vid körning; i healable, breed_items eller ett recept tystnar det bara
+# och funktionen finns inte. Facit är vaniljas hantverkskatalog.
+KAT = "/opt/bds/server/behavior_packs/vanilla/item_catalog/crafting_item_catalog.json"
+if os.path.exists(KAT):
+    kanda = set(re.findall(r'"(minecraft:[a-z0-9_]+)"', open(KAT).read()))
+    egna = {f"hund:{os.path.basename(f)[:-5]}"
+            for f in glob.glob(f"{SRC}/LoyalCompanions_BP/items/*.json")}
+    n = lambda i: i if ":" in i else "minecraft:" + i
+    nas = {}
+    js = open(f"{SRC}/LoyalCompanions_BP/scripts/main.js").read()
+    m = re.search(r"const SKATT = \[(.*?)\];", js, re.S)
+    if m:
+        for i in re.findall(r'"(minecraft:[a-z0-9_]+)"', m.group(1)):
+            nas.setdefault(i, "grävlistan")
+    for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
+        e = json.load(open(f))["minecraft:entity"]
+        c, g = e["components"], e["component_groups"]
+        for i in c.get("minecraft:shareables", {}).get("items", []):
+            nas.setdefault(n(i["item"]), "shareables")
+        for i in c.get("minecraft:tameable", {}).get("tame_items", []):
+            nas.setdefault(n(i), "tame_items")
+        for grp, nyckel in (("hund:tamed", "minecraft:healable"),
+                            ("hund:parar", "minecraft:breedable"),
+                            ("hund:valp", "minecraft:ageable")):
+            komp = g.get(grp, {}).get(nyckel, {})
+            for falt in ("items", "breed_items", "feed_items"):
+                for i in komp.get(falt, []):
+                    nas.setdefault(n(i["item"] if isinstance(i, dict) else i), falt)
+        for x in g.get("hund:tamed", {}).get("minecraft:interact", {}).get("interactions", []):
+            for v in re.findall(r'"value": "([a-z_]+_dye|bone)"',
+                                json.dumps(x.get("on_interact", {}).get("filters", {}))):
+                nas.setdefault(n(v), "interact")
+    for f in glob.glob(f"{SRC}/LoyalCompanions_BP/recipes/*.json"):
+        b = next(v for k, v in json.load(open(f)).items() if k.startswith("minecraft:recipe"))
+        for v in list(b.get("key", {}).values()) + b.get("ingredients", []) + b.get("unlock", []):
+            nas.setdefault(n(v["item"] if isinstance(v, dict) else v), os.path.basename(f))
+    for i, var in sorted(nas.items()):
+        if i not in kanda and i not in egna:
+            bad.append(f"okänt föremål '{i}' i {var}")
+# RECEPTKROCKAR mot vanilla. Två recept med samma rutnät gör att det ena inte
+# går att tillverka — kattpaketets katt-byxor var vaniljas läderbyxor.
+VR = "/opt/purrfect-companions/tests/vanilla-recipes.json"
+if os.path.exists(VR):
+    sys.path.insert(0, "/opt/purrfect-companions")
+    from recipe_canon import canon
+    facit = set(json.load(open(VR)))
+    sedda = {}
+    for f in glob.glob(f"{SRC}/LoyalCompanions_BP/recipes/*.json"):
+        b = next(v for k, v in json.load(open(f)).items() if k.startswith("minecraft:recipe"))
+        sig = canon(b)
+        namn = os.path.basename(f)
+        if not sig:
+            bad.append(f"{namn}: receptet har varken pattern eller ingredients")
+        elif sig in facit:
+            bad.append(f"{namn}: samma rutnät som ett vaniljrecept")
+        elif sig in sedda:
+            bad.append(f"{namn}: samma rutnät som {sedda[sig]}")
+        else:
+            sedda[sig] = namn
+# VARJE NYCKEL SOM VISAS FÖR SPELAREN MÅSTE FINNAS I ALLA SPRÅK. Spelaren ser
+# annars den råa nyckeln ("hund.vissla.kom") mitt i skärmen. Visslan saknade
+# faktiskt sin item-rad i en_US ända fram till genomgången — föremålets
+# minecraft:display_name räddade den, men bara på engelska.
+sprak = json.load(open(f"{SRC}/LoyalCompanions_RP/texts/languages.json"))
+texter = {s: open(f"{SRC}/LoyalCompanions_RP/texts/{s}.lang", encoding="utf-8").read()
+          for s in sprak}
+kravs = set()
 for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
-    ident = json.load(open(f))["minecraft:entity"]["description"]["identifier"]
-    if f"entity.{ident}.name=" not in lang: bad.append(f"{ident}: saknar namn i en_US.lang")
+    e = json.load(open(f))["minecraft:entity"]
+    ident = e["description"]["identifier"]
+    kravs |= {f"entity.{ident}.name", f"item.spawn_egg.entity.{ident}.name"}
+    for x in e["component_groups"].get("hund:tamed", {}).get(
+            "minecraft:interact", {}).get("interactions", []):
+        if x.get("interact_text"):
+            kravs.add(x["interact_text"])
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/items/*.json"):
+    kravs.add("item." + json.load(open(f))["minecraft:item"]["description"]["identifier"] + ".name")
+js = open(f"{SRC}/LoyalCompanions_BP/scripts/main.js").read()
+kravs |= set(re.findall(r'"(hund\.[a-z0-9_.]+)"', js))
+for k in re.findall(r'LAGENAMN = \[(.*?)\]', js, re.S):
+    kravs |= set(re.findall(r'"(hund\.[a-z0-9_.]+)"', k))
+for s2 in sprak:
+    for k in sorted(kravs):
+        if f"{k}=" not in texter[s2]:
+            bad.append(f"{s2}.lang saknar nyckeln '{k}'")
+# BP och RP ska ha samma texter — spelet läser RP:s, men en BP-fil som glidit
+# isär är en fälla nästa gång någon redigerar fel kopia.
+for s2 in sprak:
+    if open(f"{SRC}/LoyalCompanions_BP/texts/{s2}.lang", encoding="utf-8").read() != texter[s2]:
+        bad.append(f"{s2}.lang skiljer mellan BP och RP")
 print("\n".join(bad))
 PY
 )
@@ -129,7 +228,7 @@ if [ -n "$STRUKT" ]; then
   echo "$STRUKT" | while read -r l; do [ -n "$l" ] && echo "  ❌ $l"; done
   FAIL=1
 else
-  ok "manifest, geometri mot PNG, bennamn mot animationer, spawnägg, namn i språkfilen"
+  ok "manifest och motorkrav, geometri mot PNG, bennamn mot animationer, renderarkontroller, spawnägg, biomtaggar, föremåls-id, receptkrockar, språknycklar i båda språken"
 fi
 
 echo
@@ -223,6 +322,7 @@ cd "$SRV" || exit 1
   echo "scriptevent hund:test_vissla kor"; sleep 6
   echo "testfor @e[name=Visseltest,has_property={hund:lage=0}]"; sleep 1
   echo "scriptevent hund:test_grav kor"; sleep 4
+  echo "scriptevent hund:test_foremal kor"; sleep 3
   echo "kill @e[name=Visseltest]"; sleep 1
   sleep 2; echo "stop"; sleep 8
 } | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
@@ -238,6 +338,7 @@ VALP=$(grep -c "Found Valptest" "$LOG")
 HALS=$(grep -c "Found Halstest" "$LOG")
 VISSEL=$(grep -c "VISSEL-TEST OK" "$LOG")
 GRAV=$(grep -c "GRAV-TEST OK" "$LOG")
+FOREMAL=$(grep -c "FOREMAL-TEST OK" "$LOG")
 LAGEATER=$(grep -c "Found Visseltest" "$LOG")
 CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
@@ -249,6 +350,7 @@ CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$HALS" -ge 1 ] && ok "halsbandet sätter hund:halsband" || bad "halsbandet sattes inte"
 [ "$VISSEL" -ge 1 ] && ok "visslan kallar hem hunden" || bad "visslan hämtade inte hem hunden"
 [ "$LAGEATER" -ge 1 ] && ok "visslan sätter hunden i följaläge igen" || bad "hunden stod kvar i fel läge efter visslan"
+[ "$FOREMAL" -ge 1 ] && ok "boll och vissla är registrerade föremål" || bad "något av våra egna föremål gick inte att skapa"
 [ "$GRAV" -ge 1 ] && ok "hunden gräver upp något" || bad "grävandet gav inget fynd"
 [ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
 # VISA DE RADER SOM FÄLLDE KÖRNINGEN, inte filens första fyra. Den gamla

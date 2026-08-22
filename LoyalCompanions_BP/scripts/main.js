@@ -370,6 +370,22 @@ try {
         } catch (e) { console.warn("[hund] VISSEL-TEST FEL: " + e); }
       }, 40);
     }
+    if (ev.id === "hund:test_foremal") {
+      // ÄR VÅRA EGNA FÖREMÅL REGISTRERADE? Ett föremål som inte laddat gör att
+      // new ItemStack kastar. Bollen bevisas redan av apporttestet, men
+      // visslan fanns aldrig i någon körning — och ett recept som ger ett
+      // föremål spelet inte känner till syns först när någon försöker
+      // tillverka det.
+      const vill = ["hund:boll", "hund:vissla"];
+      let n = 0;
+      for (const id of vill) {
+        try {
+          const e = d.spawnItem(new ItemStack(id, 1), { x: 10, y: 22, z: 10 });
+          if (e) { n++; e.remove(); }
+        } catch (fel) { console.warn(`[hund] FOREMAL-TEST: ${id} gick inte att skapa: ${fel}`); }
+      }
+      console.log(`[hund] FOREMAL-TEST ${n === vill.length ? "OK" : "FEL"}: ${n}/${vill.length}`);
+    }
     if (ev.id === "hund:test_grav") {
       const h = hundar(d).find(x => prop(x, "hund:tam", 0) === 1);
       if (!h) { console.warn("[hund] GRAV-TEST FEL: ingen tamd hund"); return; }

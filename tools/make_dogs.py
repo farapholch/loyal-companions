@@ -372,6 +372,56 @@ RASER = [
 ]
 
 
+# SPRÅKEN. sv_SE.lang innehöll ENGELSK text, ordagrant kopierad från en_US —
+# paketet lovade svenska i languages.json och levererade inte. Antingen tar man
+# bort språket eller så översätter man det; familjen spelar på svenska, så det
+# blev det senare.
+RAS_SV = {"Pomeranian": "Pomeranian", "Golden Retriever": "Golden retriever",
+          "Siberian Husky": "Siberian husky", "Border Collie": "Border collie",
+          "Dachshund": "Tax", "Saint Bernard": "Sankt bernhardshund",
+          "Dalmatian": "Dalmatiner", "Jack Russell Terrier": "Jack russell-terrier"}
+SPRAK = {
+    "en_US": dict(agg="Spawn {n}", boll="Fetch Ball", vissla="Dog Whistle",
+                  kommando="Command", halsband="Put on collar",
+                  apport="Your dog brings it back.",
+                  lage=("Follow", "Stay", "Guard"),
+                  vissla_kom="Your dogs come running.",
+                  vissla_ingen="No dogs answered.",
+                  grav="Your dog dug something up.",
+                  vakt="Your dog growls at something nearby."),
+    "sv_SE": dict(agg="Skapa {n}", boll="Apportboll", vissla="Hundvissla",
+                  kommando="Kommando", halsband="Sätt på halsband",
+                  apport="Hunden kommer tillbaka med den.",
+                  lage=("Följ", "Stanna", "Vakta"),
+                  vissla_kom="Dina hundar kommer springande.",
+                  vissla_ingen="Ingen hund svarade.",
+                  grav="Hunden grävde upp något.",
+                  vakt="Hunden morrar åt något i närheten."),
+}
+
+
+def sprakrader(spr):
+    t = SPRAK[spr]
+    rader = []
+    for rasid, namn, ras, _k, _s, _b, _f in RASER:
+        r = RAS_SV[ras] if spr == "sv_SE" else ras
+        rader += [f"entity.{NS}:{rasid}.name={namn} ({r})",
+                  f"entity.{rasid}.name={namn} ({r})",
+                  f"item.spawn_egg.entity.{NS}:{rasid}.name=" + t["agg"].format(n=namn)]
+    rader += [f"item.{NS}:boll.name=" + t["boll"], f"item.{NS}:vissla.name=" + t["vissla"],
+              "action.interact.command=" + t["kommando"],
+              "action.interact.collar=" + t["halsband"],
+              # SKRIPTETS KVITTON hör hemma i tabellen, inte i skriptet. Lades de
+              # till i .lang-filen för hand försvann de nästa gång generatorn
+              # kördes, för den skriver om filen från grunden.
+              f"{NS}.apport.klar=" + t["apport"],
+              f"{NS}.vissla.kom=" + t["vissla_kom"],
+              f"{NS}.vissla.ingen=" + t["vissla_ingen"],
+              f"{NS}.grav=" + t["grav"], f"{NS}.vakt=" + t["vakt"]]
+    rader += [f"{NS}.lage.{i}=" + n for i, n in enumerate(t["lage"])]
+    return rader
+
+
 def ikon(rasid, farg, oron):
     """16x16 hundansikte — samma formspråk som kattpaketets spawnägg."""
     N = 16
@@ -731,7 +781,6 @@ if __name__ == "__main__":
     delar, uv = skriv_geometrier()
     renderarkontroller()
     ljud()
-    lang = []
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
     for rasid, namn, ras, kropp, skala, biom, farg in RASER:
         pals(rasid, delar[kropp], uv[kropp], farg)
@@ -740,27 +789,16 @@ if __name__ == "__main__":
         klient(rasid, kropp)
         spawnregel(rasid, biom)
         itex["texture_data"][f"dc_{rasid}"] = {"textures": f"textures/items/dc_{rasid}"}
-        lang += [f"entity.{NS}:{rasid}.name={namn} ({ras})",
-                 f"entity.{rasid}.name={namn} ({ras})",
-                 f"item.spawn_egg.entity.{NS}:{rasid}.name=Spawn {namn}"]
         print(f"  {namn:8} {ras:22} {kropp:7} skala {skala:<5} biom {biom}")
     bollen()
     visslan()
     itex["texture_data"]["dc_boll"] = {"textures": "textures/items/dc_boll"}
     itex["texture_data"]["dc_vissla"] = {"textures": "textures/items/dc_vissla"}
-    lang += [f"item.{NS}:boll.name=Fetch Ball", "action.interact.command=Command",
-             "action.interact.collar=Put on collar",
-             # SKRIPTETS KVITTON hör hemma i tabellen, inte i skriptet. Lades de
-             # till i .lang-filen för hand försvann de nästa gång generatorn
-             # kördes, för den skriver om filen från grunden.
-             f"{NS}.apport.klar=Your dog brings it back.",
-             f"{NS}.lage.0=Follow", f"{NS}.lage.1=Stay", f"{NS}.lage.2=Guard",
-             f"{NS}.vissla.kom=Your dogs come running.",
-             f"{NS}.vissla.ingen=No dogs answered.",
-             f"{NS}.grav=Your dog dug something up.",
-             f"{NS}.vakt=Your dog growls at something nearby."]
     json.dump(itex, open(f"{RP}/textures/item_texture.json", "w"), indent=2)
     for pack in (BP, RP):
-        for spr in ("en_US", "sv_SE"):
-            open(f"{pack}/texts/{spr}.lang", "w", encoding="utf-8").write("\n".join(lang) + "\n")
-    print(f"  {len(RASER)} raser, {len(KROPPAR)} kroppar, {len(lang)} språkrader")
+        for spr in SPRAK:
+            open(f"{pack}/texts/{spr}.lang", "w", encoding="utf-8").write(
+                "\n".join(sprakrader(spr)) + "\n")
+        json.dump(list(SPRAK), open(f"{pack}/texts/languages.json", "w"))
+    print(f"  {len(RASER)} raser, {len(KROPPAR)} kroppar, "
+          f"{len(sprakrader('en_US'))} språkrader x {len(SPRAK)} språk")
