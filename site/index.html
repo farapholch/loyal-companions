@@ -89,18 +89,6 @@ Bernard rumbles.</li>
 <p>Tame them with <b>bones</b> — about a third of the time per bone, so it
 costs a few.</p>
 
-<h2>How it is built</h2>
-<p>Nothing is drawn or written by hand that can be computed from a table. One
-generator owns the geometries, coats, entities, spawn rules, sounds and
-language files; a second renders the pictures on this page straight from the
-pack's own models. Before any release, the whole pack is loaded into a real
-Bedrock server, which spawns and tames every breed, cycles the command modes,
-throws a ball and checks that the dog comes back with it.</p>
-<p>The hardest part was fetch. <code>minecraft:behavior.pickup_items</code>
-does nothing at all on its own — the piece that makes a mob walk to an item is
-<code>minecraft:shareables</code>, its wishlist. That took eight server runs
-and a fox as a control.</p>
-
 <a class="cta alt" href="https://github.com/farapholch/loyal-companions">Source on GitHub</a>
 
 <footer>

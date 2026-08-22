@@ -34,6 +34,13 @@ if unzip -qq -p "$ADDON" 2>/dev/null | grep -qiE "$NAMN"; then
 fi
 
 mkdir -p "$DEST"
+# SIDORNA SPEGLAS, inte bara kopieras. Tas en sida bort ur site/ ligger den
+# annars kvar publikt för alltid — en död sida som ingen länkar till men som
+# sökmotorer och gamla länkar hittar.
+for GAMMAL in "$DEST"/*.html; do
+  [ -e "$GAMMAL" ] || continue
+  [ -f "$SRC/site/$(basename "$GAMMAL")" ] || { echo "   tar bort $(basename "$GAMMAL")"; rm -f "$GAMMAL"; }
+done
 cp "$SRC"/site/*.html "$DEST/"
 # BARA BILDERNA SIDAN ANVÄNDER. publish/ innehåller också enstaka
 # felsökningsrenderingar (dog-*.png), och de har inget på en publik sajt att göra.
