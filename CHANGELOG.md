@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.1
+
+Ingen ny funktion — tre saker som var otestade är det inte längre:
+
+- **En riktig klient ansluter nu i testkedjan.** Den ser paketet som en
+  spelares spel gör: alla tio egna föremål finns i klientens item_registry,
+  visslan går att ge och hamnar i inventariet, hundarna strömmas in med rätt
+  typnamn, och **egenskaperna synkas till klienten**. Det sista är det
+  halsbandet och bollen i munnen hänger i — `part_visibility` läser dem på
+  klientsidan, och att servern sätter dem bevisar ingenting om att klienten
+  får veta det.
+- **Tillståndet överlever en omstart.** Tamflagga, kommandoläge, halsbandsfärg,
+  buret föremål och dess dynamiska egenskap läses tillbaka intakta efter att
+  servern startats om mot samma värld. Det stod som ett påstående i en
+  kommentar och var aldrig mätt.
+- **Trettioen hundar kostar 0,09 ms per loopvarv** mot en tickbudget på 50 ms.
+  Loopen mäter sig själv; `tools/loyal-uthallighet` kör provet.
+
 ## 1.2.0
 
 Genomgång av beteendet i drift, inte bara av filerna. Fem fynd:

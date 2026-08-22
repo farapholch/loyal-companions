@@ -100,7 +100,13 @@ function foremalNara(dim, plats, radie) {
 // Fem tick, inte tjugo: mellan att hunden når fram och att vanilla förstör
 // föremålet finns bara ögonblick, och en loop som tittar en gång i sekunden
 // missar det ungefär varannan gång.
+// LOOPENS KOSTNAD mäts av loopen själv. Två klockavläsningar var femte tick är
+// försumbart, och utan siffran är "går det långsamt med många hundar?" en
+// gissning. Rapporteras av /scriptevent hund:test_last.
+let matning = { varv: 0, ms: 0 };
+
 system.runInterval(() => {
+  const t0 = Date.now();
   const levande = new Set();
   for (const d of DIMENSIONER) {
   for (const h of hundar(d)) {
@@ -228,6 +234,8 @@ system.runInterval(() => {
   }
   }
   for (const id of minne.keys()) if (!levande.has(id)) minne.delete(id);
+  matning.varv++;
+  matning.ms += Date.now() - t0;
 }, 5);
 
 // ---------------------------------------------------------------------------
@@ -383,6 +391,36 @@ try {
           else console.warn(`[hund] VISSEL-TEST FEL: ${n} hund(ar), avstand ${a.toFixed(1)}`);
         } catch (e) { console.warn("[hund] VISSEL-TEST FEL: " + e); }
       }, 40);
+    }
+    if (ev.id === "hund:test_last") {
+      const n = hundar(d).length;
+      const snitt = matning.varv ? matning.ms / matning.varv : 0;
+      console.log(`[hund] LAST-TEST: ${n} hundar, ${matning.varv} varv, `
+        + `${snitt.toFixed(2)} ms per varv (budget 50 ms/tick)`);
+      matning = { varv: 0, ms: 0 };
+    }
+    if (ev.id === "hund:test_satt") {
+      // sätter allt som ska överleva en omstart
+      const h = hundar(d).find(x => x.nameTag === "Uthall");
+      if (!h) { console.warn("[hund] SPARA-TEST FEL: hittar inte Uthall"); return; }
+      try {
+        h.setProperty("hund:bar", 2);
+        h.setDynamicProperty(BURET, "minecraft:stick");
+        console.log("[hund] SPARA-TEST: bar=2 och buret=minecraft:stick satta");
+      } catch (e2) { console.warn("[hund] SPARA-TEST FEL: " + e2); }
+    }
+    if (ev.id === "hund:test_las") {
+      const h = hundar(d).find(x => x.nameTag === "Uthall");
+      if (!h) { console.warn("[hund] LAS-TEST FEL: Uthall overlevde inte omstarten"); return; }
+      let buret = null;
+      try { buret = h.getDynamicProperty(BURET); } catch { }
+      const rad = `tam=${prop(h, "hund:tam", "-")} lage=${prop(h, "hund:lage", "-")} `
+        + `halsband=${prop(h, "hund:halsband", "-")} bar=${prop(h, "hund:bar", "-")} buret=${buret}`;
+      const helt = prop(h, "hund:tam", 0) === 1 && prop(h, "hund:lage", -1) === 1
+        && prop(h, "hund:halsband", 0) === 5 && prop(h, "hund:bar", 0) === 2
+        && buret === "minecraft:stick";
+      if (helt) console.log(`[hund] LAS-TEST OK: ${rad}`);
+      else console.warn(`[hund] LAS-TEST FEL: ${rad}`);
     }
     if (ev.id === "hund:test_stanna") {
       // STANNA MOT FRESTELSE. En hund i stannaläge ska INTE gå efter en boll.

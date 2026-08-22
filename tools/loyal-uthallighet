@@ -1,0 +1,104 @@
+#!/bin/bash
+# Uthållighetsprov: det som bara syns över TID och SKALA, och som därför inte
+# hör hemma i loyal-test (som river världen vid varje körning).
+#
+#   1. ÖVERLEVER TILLSTÅNDET EN OMSTART? Egenskaperna (tam, läge, halsband,
+#      bar) och den dynamiska egenskapen för vad hunden bär påstås överleva
+#      världsomstart — det stod i en kommentar och var aldrig provat.
+#   2. VAD KOSTAR LOOPEN MED MÅNGA HUNDAR? Skriptet går var femte tick och
+#      frågar efter föremål per hund. Trettio hundar är en rimlig hundgård.
+#
+# Världen RIVS INTE mellan faserna — det är hela poängen.
+set -u
+if [ "${BDS_LOCK_HELD:-}" != "1" ]; then
+  exec 9>/tmp/bds.lock; flock -w 1200 9 || { echo "kunde inte ta serverlåset"; exit 1; }
+  export BDS_LOCK_HELD=1
+fi
+SRC=/opt/loyal-companions
+SRV=/opt/bds/server
+WORLD="$SRV/worlds/Hundtest"
+LOG=/tmp/loyal-uthall.log
+FAIL=0
+ok(){ echo "  ✅ $1"; }
+bad(){ echo "  ❌ $1"; FAIL=1; }
+
+echo "=== Uthållighetsprov $(date '+%F %H:%M') ==="
+pkill -9 -x bedrock_server 2>/dev/null; sleep 2
+find "$SRV" -name "ContentLog*" -delete 2>/dev/null
+rm -rf "$WORLD/db" "$WORLD/behavior_packs" "$WORLD/resource_packs"
+mkdir -p "$WORLD/behavior_packs" "$WORLD/resource_packs"
+cp -r "$SRC/LoyalCompanions_BP" "$WORLD/behavior_packs/"
+cp -r "$SRC/LoyalCompanions_RP" "$WORLD/resource_packs/"
+python3 - "$WORLD" <<'PY'
+import json, sys
+W = sys.argv[1]
+bp = json.load(open(f"{W}/behavior_packs/LoyalCompanions_BP/manifest.json"))["header"]
+rp = json.load(open(f"{W}/resource_packs/LoyalCompanions_RP/manifest.json"))["header"]
+json.dump([{"pack_id": bp["uuid"], "version": bp["version"]}], open(f"{W}/world_behavior_packs.json", "w"))
+json.dump([{"pack_id": rp["uuid"], "version": rp["version"]}], open(f"{W}/world_resource_packs.json", "w"))
+PY
+sed -i 's/^level-name=.*/level-name=Hundtest/' "$SRV/server.properties"
+cd "$SRV" || exit 1
+
+echo
+echo "[1/3] Sätter tillstånd och stänger av (~1 min)"
+{
+  sleep 28
+  echo "tickingarea add 0 0 0 48 48 48 hund"; sleep 3
+  echo "fill 2 19 2 46 19 22 stone"; sleep 1
+  echo "fill 2 20 2 46 26 22 air"; sleep 1
+  echo "summon hund:kelda \"Uthall\" 10 21 10"; sleep 2
+  echo "event entity @e[name=Uthall] hund:on_tame"; sleep 1
+  echo "event entity @e[name=Uthall] hund:nasta_lage"; sleep 1
+  echo "event entity @e[name=Uthall] hund:halsband_5"; sleep 1
+  echo "scriptevent hund:test_satt kor"; sleep 3
+  echo "save hold"; sleep 2; echo "save query"; sleep 2; echo "save resume"; sleep 1
+  echo "stop"; sleep 10
+} | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
+pkill -9 -x bedrock_server 2>/dev/null; sleep 2
+grep -q "SPARA-TEST: bar=2" "$LOG" && ok "tillståndet satt före omstart" || bad "kunde inte sätta tillståndet"
+
+echo
+echo "[2/3] Startar om SAMMA värld och läser tillbaka (~1 min)"
+{
+  sleep 30
+  echo "scriptevent hund:test_las kor"; sleep 4
+  echo "stop"; sleep 8
+} | LD_LIBRARY_PATH=. ./bedrock_server >> "$LOG" 2>&1
+pkill -9 -x bedrock_server 2>/dev/null; sleep 2
+if grep -q "LAS-TEST OK" "$LOG"; then
+  ok "allt tillstånd överlevde omstarten: $(grep -o 'LAS-TEST OK:.*' "$LOG" | tail -1)"
+else
+  bad "tillstånd gick förlorat: $(grep -o 'LAS-TEST FEL:.*' "$LOG" | tail -1)"
+fi
+
+echo
+echo "[3/3] Trettio hundar, en minut (~1,5 min)"
+{
+  sleep 30
+  for i in $(seq 1 30); do echo "summon hund:pepper $(( 6 + i % 20 )) 21 $(( 6 + i % 12 ))"; done
+  sleep 5
+  # bollar på marken tvingar apportlogiken att arbeta för varje hund
+  echo "scriptevent hund:test_last nollstall"; sleep 2
+  for i in 1 2 3 4 5; do echo "summon item $(( 8 + i * 2 )) 21 8"; done
+  sleep 55
+  echo "scriptevent hund:test_last kor"; sleep 3
+  echo "stop"; sleep 8
+} | LD_LIBRARY_PATH=. ./bedrock_server >> "$LOG" 2>&1
+pkill -9 -x bedrock_server 2>/dev/null
+SISTA=$(grep -o "LAST-TEST: .*" "$LOG" | tail -1)
+MS=$(echo "$SISTA" | grep -oE "[0-9]+\.[0-9]+ ms" | head -1 | cut -d' ' -f1)
+echo "  $SISTA"
+if [ -n "$MS" ] && awk "BEGIN{exit !($MS < 5)}"; then
+  ok "loopen kostar under 5 ms per varv med full hundgård"
+elif [ -n "$MS" ]; then
+  bad "loopen kostar $MS ms per varv — undersök innan fler hundar läggs till"
+else
+  bad "ingen mätning kom tillbaka"
+fi
+HANG=$(grep -ciE "watchdog|hang detected|running behind|shutting down" "$LOG")
+[ "$HANG" -eq 0 ] && ok "inga watchdog- eller eftersläpningsvarningar" || bad "$HANG varningar om eftersläpning (se $LOG)"
+
+echo
+[ $FAIL -eq 0 ] && echo "=== UTHÅLLIGHET GRÖN ===" || echo "=== FEL HITTADE (logg: $LOG) ==="
+exit $FAIL

@@ -28,7 +28,7 @@ bad(){ echo "  ❌ $1"; FAIL=1; }
 
 echo "=== Loyal Companions-test $(date '+%F %H:%M') ==="
 echo
-echo "[1/3] JSON och bilder"
+echo "[1/4] JSON och bilder"
 n=0
 while read -r f; do
   n=$((n+1))
@@ -38,7 +38,7 @@ done < <(find "$SRC" -name "*.json")
 python3 /opt/purrfect-companions/tools/pngkoll.py "$SRC/LoyalCompanions_RP" | sed 's/^/  /' || bad "trasiga PNG-filer"
 
 echo
-echo "[2/3] Struktur"
+echo "[2/4] Struktur"
 STRUKT=$(python3 - "$SRC" <<'PY'
 import json, glob, os, re, struct, sys
 SRC = sys.argv[1]; bad = []
@@ -288,7 +288,7 @@ else
 fi
 
 echo
-echo "[3/3] Skarp server (~1 min)"
+echo "[3/4] Skarp server (~1 min)"
 pkill -9 -x bedrock_server 2>/dev/null; sleep 2
 find "$SRV" -name "ContentLog*" -delete 2>/dev/null
 rm -rf "$WORLD/db" "$WORLD/behavior_packs" "$WORLD/resource_packs"
@@ -429,6 +429,22 @@ CLREST=""
 if [ -n "$CLREST" ]; then
   bad "innehållsfel i $(basename "$CL")"; echo "$CLREST" | head -5 | sed 's/^/     /'
 else ok "inga innehållsfel"; fi
+
+# Spelar-röktest: en RIKTIG klient (bedrock-protocol) ansluter och verifierar
+# det kommandosidan aldrig ser — item_registry, give av egna föremål,
+# entitetsströmning och property-synk. Det sista är det som halsbandet och
+# bollen i munnen hänger i: part_visibility läser egenskaperna på KLIENTEN, och
+# att servern sätter dem bevisar ingenting om att klienten får veta det.
+# Frivilligt steg: kräver kattprojektets testbot-beroenden.
+if [ -f "$SRC/tools/testbot/smoke-test.js" ] && [ -d /opt/purrfect-testbot/node_modules ]; then
+  echo
+  echo "[4/4] Spelar-röktest (riktig klient, ~1 min)"
+  pkill -9 -x bedrock_server 2>/dev/null; sleep 2
+  BOT=$(node "$SRC/tools/testbot/smoke-test.js" 2>&1)
+  echo "$BOT" | grep -E "^(OK|FAIL)" | sed 's/^OK  /  ✅ /; s/^FAIL/  ❌ /'
+  echo "$BOT" | grep -q "^FAIL" && FAIL=1
+  pkill -9 -x bedrock_server 2>/dev/null
+fi
 
 echo
 [ $FAIL -eq 0 ] && echo "=== LOYAL COMPANIONS GRÖNT ===" || echo "=== FEL HITTADE (logg: $LOG) ==="
