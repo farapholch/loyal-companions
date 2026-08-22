@@ -10,3 +10,4 @@ variants.private.json
 publish/*.mcaddon
 publish/*.mcworld
 .gstack/
+.curseforge-project

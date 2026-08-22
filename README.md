@@ -70,7 +70,7 @@ Nothing is drawn or written by hand that can be computed from a table.
 | `tools/loyal-uthallighet` | What only shows over time and scale: does the state survive a restart, what does the loop cost with thirty dogs |
 | `tools/make_logo.py` | The framed 512×512 logo the pack icon is derived from |
 | `tools/loyal-ship` | Build → test → package → Mod Mate, refuses to send a failing build |
-| `publish_site.sh` | Publishes loyal.pelleops.se, and builds the download it publishes |
+| `publish_site.sh` | Publishes loyal.pelleops.se (pages and pictures only — the pack is downloaded from the stores, not from us) |
 | `make_variant.py` | Public build vs the family build; private names never enter the repo |
 
 `tools/loyal-test` shares the Bedrock server lock (`/tmp/bds.lock`) with the cat

@@ -150,8 +150,47 @@ def ark():
     print(f"  publish/dogs.png ({W}x{H}) — {', '.join(r[0] for r in raser)}")
 
 
+def butiksbild():
+    """1280x720-version av kontaktkartan — butikernas skärmbildsformat.
+
+    CurseForge och MCPEDL visar skärmbilder i 16:9. Kontaktkartan är 800x468
+    och skulle skalas om av butiken själv, vilket gör pixelkonsten grötig."""
+    import make_video as mv
+    W, H = 1280, 720
+    mv.W, mv.H = W, H
+    raser = rasklient()
+    RUTA, ETIKETT, KOL = 300, 44, 4
+    rader = math.ceil(len(raser) / KOL)
+    bx0 = (W - RUTA * KOL) // 2
+    by0 = (H - (RUTA + ETIKETT) * rader) // 2
+    duk = [[(int(20 + 8 * y / H), int(26 + 10 * y / H), int(16 + 6 * y / H), 255)
+            for _ in range(W)] for y in range(H)]
+    for i, (rasid, geoid, tex) in enumerate(raser):
+        bild = rita(geoid, tex, RUTA, RUTA, bar=1 if i % 3 == 0 else 0,
+                    halsband=(i % 8) + 1, bakgrund=(0, 0, 0, 0))
+        rx, ry = bx0 + (i % KOL) * RUTA, by0 + (i // KOL) * (RUTA + ETIKETT)
+        for y in range(8, RUTA - 4):
+            for x in range(8, RUTA - 8):
+                kant = min(x - 8, y - 8, RUTA - 9 - x, RUTA - 5 - y)
+                duk[ry + y][rx + x] = (40, 52, 34, 255) if kant < 1 else (27, 36, 23, 255)
+        for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, -1), (-1, 1), (1, 1)):
+            for y in range(RUTA):
+                for x in range(RUTA):
+                    if bild[y][x][3] and 0 <= ry + y + dy < H and 0 <= rx + x + dx < W:
+                        duk[ry + y + dy][rx + x + dx] = (232, 240, 246, 255)
+        for y in range(RUTA):
+            for x in range(RUTA):
+                if bild[y][x][3]:
+                    duk[ry + y][rx + x] = bild[y][x]
+        mv.text(duk, rasid.upper(), rx + RUTA // 2, ry + RUTA + 10, 3, (217, 192, 122, 255))
+    rr.write_png(f"{BASE}/publish/store-dogs.png", W, H, duk)
+    print(f"  publish/store-dogs.png ({W}x{H})")
+
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    if sys.argv[1:2] == ["--butik"]:
+        butiksbild()
+    elif len(sys.argv) > 1:
         rasid = sys.argv[1]
         geoid, tex = next((g, t) for r, g, t in rasklient() if r == rasid)
         rr.write_png(f"{BASE}/publish/dog-{rasid}.png", 400, 400,
