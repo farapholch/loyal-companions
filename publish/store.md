@@ -56,6 +56,8 @@ Taggar: dogs, pets, mobs, animals, fetch, tameable, companions, survival
 | `publish/logo.png` | 512x512 | projektavatar (CurseForge kräver kvadrat, minst 400x400) |
 | `publish/hero.png` | 1280x720 | första skärmbilden |
 | `publish/store-dogs.png` | 1280x720 | andra skärmbilden, alla åtta med namn |
+| `publish/loyal-trailer.mp4` | 1080p, ~35 s | ladda upp på YouTube och klistra in länken i beskrivningen |
+| `publish/loyal-trailer.gif` | 480 px, loopar | MCPEDL och andra ställen som tar rörlig bild direkt |
 
 ## Filen
 Byggs av `tools/loyal-ship --public --no-upload` och hamnar som

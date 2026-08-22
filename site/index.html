@@ -19,7 +19,8 @@ h1{font-size:2.2rem;margin-bottom:6px;background:linear-gradient(45deg,#e0b552,#
 .tag{color:rgba(255,255,255,.68);font-size:1.02rem}
 h2{font-size:1.15rem;margin:34px 0 14px;color:#d9c07a}
 p{color:rgba(255,255,255,.82);line-height:1.65;margin-bottom:12px}
-img.hero{width:100%;border-radius:14px;margin:18px 0;display:block;image-rendering:pixelated}
+img.hero,video.hero{width:100%;border-radius:14px;margin:18px 0;display:block;
+ image-rendering:pixelated}
 img.logga{display:block;margin:0 auto 14px;width:min(240px,60%);height:auto;
  border-radius:16px;image-rendering:pixelated;box-shadow:0 6px 22px rgba(0,0,0,.45)}
 .cta{display:block;text-align:center;padding:16px;border-radius:13px;font-weight:700;font-size:1.06rem;
@@ -49,7 +50,9 @@ footer a{color:#d9c07a}
 <p class="tag">Eight hand-made dogs for Minecraft Bedrock</p>
 </header>
 
-<img class="hero" src="hero.png" alt="Six of the dogs on a meadow">
+<video class="hero" autoplay muted loop playsinline controls
+  poster="hero.png" src="loyal-trailer.mp4"
+  aria-label="Loyal Companions trailer"></video>
 
 <p>Minecraft has one dog. This adds eight, and gives them something to do. They
 are not reskins: the body of each breed is built from its own measurements, so

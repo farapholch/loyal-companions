@@ -28,6 +28,11 @@ cp "$SRC"/site/*.html "$DEST/"
 for BILD in logo.png hero.png dogs.png favicon.png apple-touch-icon.png pack_icon.png; do
   cp "$SRC/publish/$BILD" "$DEST/"
 done
+# TRAILERN. Videon och den loopande snutten ligger i publish/ som allt annat,
+# men de är stora nog att förtjäna en egen rad — och saknas de ska det synas.
+for FILM in loyal-trailer.mp4 loyal-trailer.gif; do
+  [ -f "$SRC/publish/$FILM" ] && cp "$SRC/publish/$FILM" "$DEST/" || echo "   VARNING: $FILM saknas"
+done
 
 # INGEN .mcaddon PÅ SAJTEN. Ligger det en kvar sedan tidigare tas den bort — en
 # gammal fil som fortfarande går att hämta är värre än ingen fil alls.
@@ -40,7 +45,7 @@ sed -i "s/__VERSION__/$VERSION/g" "$DEST/index.html"
 # CACHEN. Cloudflare håller bilder i fyra timmar och vi har ingen token att
 # rensa med, så en ny hjältebild syns inte förrän TTL:en löpt ut. Versionsstämpla
 # länkarna i stället: samma fil, ny URL vid varje release.
-sed -i -E "s/(src=\"[^\"]+\.png)\"/\1?v=$VERSION\"/g" "$DEST/index.html"
+sed -i -E "s/(src=\"[^\"]+\.(png|mp4|gif))\"/\1?v=$VERSION\"/g; s/(poster=\"[^\"]+\.png)\"/\1?v=$VERSION\"/g" "$DEST/index.html"
 
 chmod 644 "$DEST"/* 2>/dev/null || true
 echo "publicerat v$VERSION till $DEST (https://loyal.pelleops.se)"
