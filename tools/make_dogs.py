@@ -18,6 +18,7 @@ i huvudet, och två kuber som delar yta ger en textur där benen bär ansiktet.
     python3 tools/make_dogs.py
 """
 import json, math, os, sys
+from collections import Counter
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "/opt/purrfect-companions")
@@ -477,14 +478,21 @@ def entitet(rasid, skala):
             "minecraft:movement": {"value": 0.33},
             "minecraft:movement.basic": {}, "minecraft:jump.static": {},
             "minecraft:navigation.walk": {"can_path_over_water": True, "avoid_water": True},
-            "minecraft:nameable": {}, "minecraft:persistent": {},
+            "minecraft:nameable": {},
             "minecraft:behavior.float": {"priority": 0},
             "minecraft:behavior.panic": {"priority": 1, "speed_multiplier": 1.4},
-            "minecraft:behavior.look_at_player": {"priority": 8, "look_distance": 8},
-            "minecraft:behavior.random_look_around": {"priority": 9},
+            # PRIORITETERNA MÅSTE VARA UNIKA i varje kombination av grupper som
+            # kan vara aktiva samtidigt. Två mål med samma siffra är
+            # odefinierat i Bedrock — det ena kan tyst falla bort. look_at_player
+            # låg på 8, samma som vaktlägets follow_owner.
+            "minecraft:behavior.look_at_player": {"priority": 10, "look_distance": 8},
+            "minecraft:behavior.random_look_around": {"priority": 11},
             # SKÄLLET. event_name pekar in i sounds.json; går namnet fel blir
             # det tyst utan felmeddelande.
-            "minecraft:ambient_sound_interval": {"value": 7.0, "range": 12.0,
+            # SÄLLAN. Sju sekunder med tolv i spridning betyder ett skall var
+            # trettonde sekund PER HUND — tre hundar i följe blir en hund som
+            # skäller var fjärde sekund, och då stänger man av ljudet.
+            "minecraft:ambient_sound_interval": {"value": 20.0, "range": 30.0,
                                                  "event_name": "ambient"},
             # INGEN minecraft:equippable. Den satt här först, i tron att
             # pickup_items behövde någonstans att lägga bytet. Den registreras
@@ -511,8 +519,14 @@ def entitet(rasid, skala):
         "component_groups": {
             f"{NS}:tamed": {
                 "minecraft:is_tamed": {},
+                # PERSISTENT BARA NÄR HUNDEN ÄR NÅGONS. Den satt i
+                # baskomponenterna, vilket betyder att varenda vildhund som
+                # någonsin spawnat blir kvar för alltid — åtta raser som aldrig
+                # despawnar sväller en värld år efter år. Vaniljas djur är inte
+                # persistenta; en tämjd hund ska däremot aldrig försvinna.
+                "minecraft:persistent": {},
                 "minecraft:sittable": {},
-                "minecraft:behavior.stay_while_sitting": {"priority": 5},
+                "minecraft:behavior.stay_while_sitting": {"priority": 3},
                 # MATEN LÄKER. Kött av alla slag, som hos vargen.
                 "minecraft:healable": {"force_use": True, "items": [
                     {"item": i, "heal_amount": h} for i, h in
@@ -554,17 +568,17 @@ def entitet(rasid, skala):
             # stannakommando — den ska INTE följa efter när du går.
             f"{NS}:stannar": {},
             f"{NS}:vaktar": {
-                "minecraft:behavior.follow_owner": {"priority": 8, "speed_multiplier": 1.0,
+                "minecraft:behavior.follow_owner": {"priority": 9, "speed_multiplier": 1.0,
                                                     "start_distance": 14, "stop_distance": 6},
-                "minecraft:behavior.owner_hurt_by_target": {"priority": 2},
-                "minecraft:behavior.owner_hurt_target": {"priority": 3},
+                "minecraft:behavior.owner_hurt_by_target": {"priority": 4},
+                "minecraft:behavior.owner_hurt_target": {"priority": 5},
                 "minecraft:behavior.nearest_attackable_target": {
-                    "priority": 4, "must_see": True, "reselect_targets": True,
+                    "priority": 6, "must_see": True, "reselect_targets": True,
                     "within_radius": 12,
                     "entity_types": [{"filters": {"any_of": [
                         {"test": "is_family", "subject": "other", "value": "monster"}]},
                         "max_dist": 12}]},
-                "minecraft:behavior.melee_attack": {"priority": 5},
+                "minecraft:behavior.melee_attack": {"priority": 7},
                 "minecraft:attack": {"damage": 4},
             },
             # APPORT: vaniljas egen upplockning gör navigeringen åt oss. Att
@@ -634,8 +648,13 @@ def entitet(rasid, skala):
             "minecraft:entity_spawned": {"add": {"component_groups": [f"{NS}:vuxen"]}},
             # VALPEN ÄRVER TAMHETEN. En valp född till tämjda föräldrar som
             # sedan måste tämjas om vore bara irriterande.
+            # VALPEN MÅSTE TAPPA hund:vuxen. minecraft:entity_spawned hinner
+            # lägga på den innan parningens hund:fodd kör, och då bär ungen TVÅ
+            # minecraft:scale — vilken som vinner är odefinierat, och valpen kan
+            # födas fullvuxen.
             f"{NS}:fodd": {"add": {"component_groups": [f"{NS}:valp", f"{NS}:tamed",
                                                         f"{NS}:foljer"]},
+                           "remove": {"component_groups": [f"{NS}:vuxen"]},
                            "set_property": {f"{NS}:tam": 1}},
             f"{NS}:grow_up": {"add": {"component_groups": [f"{NS}:vuxen", f"{NS}:parar"]},
                               "remove": {"component_groups": [f"{NS}:valp"]}},
@@ -659,14 +678,14 @@ def klient(rasid, kropp):
     json.dump(d, open(f"{RP}/entity/{rasid}.json", "w"), indent=2)
 
 
-def spawnregel(rasid, biom):
+def spawnregel(rasid, biom, vikt):
     json.dump({"format_version": "1.8.0", "minecraft:spawn_rules": {
         "description": {"identifier": f"{NS}:{rasid}", "population_control": "animal"},
         "conditions": [{"minecraft:spawns_on_surface": {},
                         "minecraft:brightness_filter": {"min": 7, "max": 15,
                                                         "adjust_for_weather": False},
                         "minecraft:difficulty_filter": {"min": "easy", "max": "hard"},
-                        "minecraft:weight": {"default": 3},
+                        "minecraft:weight": {"default": vikt},
                         "minecraft:herd": {"min_size": 1, "max_size": 2},
                         "minecraft:biome_filter": {"test": "has_biome_tag",
                                                    "operator": "==", "value": biom}}]}},
@@ -778,6 +797,11 @@ def bollen():
 if __name__ == "__main__":
     for m in ("models/entity", "render_controllers", "textures/entity", "textures/items", "entity"):
         os.makedirs(f"{RP}/{m}", exist_ok=True)
+    # SPAWNVIKTEN DELAS INOM BIOMET. Fem raser i plains med vikt 3 var blev
+    # samlad vikt 15 — nästan dubbelt mot vaniljas varg (8), alltså hundar
+    # överallt. Vikten räknas nu fram ur hur många raser som delar biomet.
+    antal = Counter(r[5] for r in RASER)
+    VIKT = {b: max(1, round(4 / n)) for b, n in antal.items()}
     delar, uv = skriv_geometrier()
     renderarkontroller()
     ljud()
@@ -787,7 +811,7 @@ if __name__ == "__main__":
         ikon(rasid, farg, KROPPAR[kropp][5])
         entitet(rasid, skala)
         klient(rasid, kropp)
-        spawnregel(rasid, biom)
+        spawnregel(rasid, biom, VIKT[biom])
         itex["texture_data"][f"dc_{rasid}"] = {"textures": f"textures/items/dc_{rasid}"}
         print(f"  {namn:8} {ras:22} {kropp:7} skala {skala:<5} biom {biom}")
     bollen()

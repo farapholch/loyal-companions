@@ -112,6 +112,62 @@ g1 = set(re.findall(r'"([a-z:_]+)"', re.search(r"APPORTBARA = \[(.*?)\]", gen, r
 g1 |= {"hund:boll"} if 'f"{NS}:boll"' in gen else set()
 g2 = set(re.findall(r'"([a-z:_]+)":', re.search(r"APPORTBARA = \{(.*?)\}", js, re.S).group(1)))
 if g1 != g2: bad.append(f"APPORTBARA skiljer: generatorn {sorted(g1)} mot skriptet {sorted(g2)}")
+# TVÅ MÅL MED SAMMA PRIORITET är odefinierat i Bedrock — det ena kan tyst falla
+# bort. Krocken syns bara i KOMBINATIONEN av grupper som är aktiva samtidigt,
+# och stay_while_sitting låg på samma siffra som melee_attack: en sittande
+# vakthund var ett lotteri.
+KOMBOR = [("hund:tamed", "hund:foljer"), ("hund:tamed", "hund:stannar"),
+          ("hund:tamed", "hund:vaktar"), ("hund:tamed", "hund:foljer", "hund:apporterar"),
+          ("hund:tamed", "hund:vaktar", "hund:apporterar")]
+# TVÅ KOMPONENTGRUPPER SOM DEKLARERAR SAMMA KOMPONENT får inte vara aktiva
+# samtidigt. hund:vuxen och hund:valp sätter båda minecraft:scale, och
+# parningens hund:fodd la på valpen UTAN att ta bort vuxen — vilken skala som
+# vann var odefinierat och valpen kunde födas fullvuxen.
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
+    e = json.load(open(f))["minecraft:entity"]
+    namn = os.path.basename(f)
+    grupper = e["component_groups"]
+    for kombo in KOMBOR:
+        prio = {}
+        for g in kombo:
+            for k, v in grupper.get(g, {}).items():
+                if k.startswith("minecraft:behavior.") and isinstance(v, dict):
+                    prio.setdefault(v.get("priority"), []).append(f"{g}/{k}")
+        for k, v in e["components"].items():
+            if k.startswith("minecraft:behavior.") and isinstance(v, dict):
+                prio.setdefault(v.get("priority"), []).append(f"bas/{k}")
+        for p_, vilka in sorted(prio.items(), key=lambda x: (x[0] is None, x[0])):
+            if len(vilka) > 1:
+                bad.append(f"{namn}: prioritet {p_} delas av {', '.join(vilka)} "
+                           f"i {'+'.join(kombo)}")
+    for ev, kropp in e["events"].items():
+        lagg = kropp.get("add", {}).get("component_groups", [])
+        tas = set(kropp.get("remove", {}).get("component_groups", []))
+        for i2, a in enumerate(lagg):
+            for b in lagg[i2 + 1:]:
+                delade = set(grupper.get(a, {})) & set(grupper.get(b, {}))
+                if delade:
+                    bad.append(f"{namn}: {ev} lägger på både {a} och {b}, som båda "
+                               f"sätter {', '.join(sorted(delade))}")
+        # grupper som krockar med en påslagen grupp måste tas bort i samma händelse
+        # minecraft:entity_spawned undantas: den kör EN gång, i samma ögonblick
+        # som djuret skapas, innan någon annan grupp hunnit läggas på. Den kan
+        # alltså inte krocka med en grupp som redan sitter där. (Parningens
+        # ordning bygger på just det: ungen spawnar, entity_spawned lägger på
+        # hund:vuxen, och därefter tar breed_event hund:fodd bort den igen.)
+        if ev == "minecraft:entity_spawned":
+            continue
+        for a in lagg:
+            for b, bk in grupper.items():
+                if b == a or b in tas or b in lagg:
+                    continue
+                delade = set(grupper.get(a, {})) & set(bk)
+                # bara grupper som något annat event faktiskt kan ha slagit på
+                pas = any(b in x.get("add", {}).get("component_groups", [])
+                          for x in e["events"].values())
+                if delade and pas:
+                    bad.append(f"{namn}: {ev} lägger på {a} utan att ta bort {b} "
+                               f"— båda sätter {', '.join(sorted(delade))}")
 # BIOMTAGGEN MÅSTE FINNAS. "mountain" ser rimlig ut, heter "extreme_hills" och
 # ger en ras som helt enkelt aldrig dyker upp i världen — utan ett ord någonstans.
 # Facit är vaniljas BIOMDEFINITIONER, inte dess spawnregler: taggar som
@@ -324,6 +380,16 @@ cd "$SRV" || exit 1
   echo "scriptevent hund:test_grav kor"; sleep 4
   echo "scriptevent hund:test_foremal kor"; sleep 3
   echo "kill @e[name=Visseltest]"; sleep 1
+  # STANNAKOMMANDOT mot en boll åtta block bort.
+  echo "summon hund:scout \"Stannatest\" 10 21 10"; sleep 2
+  echo "event entity @e[name=Stannatest] hund:on_tame"; sleep 1
+  echo "event entity @e[name=Stannatest] hund:nasta_lage"; sleep 1
+  echo "testfor @e[name=Stannatest,has_property={hund:lage=1}]"; sleep 1
+  echo "scriptevent hund:test_stanna kor"; sleep 14
+  echo "kill @e[name=Stannatest]"; sleep 1
+  # Bollarna som blivit kvar städas bort, annars kan nästa steg i en framtida
+  # utökning tro att de är dess egna.
+  echo "kill @e[type=item]"; sleep 1
   sleep 2; echo "stop"; sleep 8
 } | LD_LIBRARY_PATH=. ./bedrock_server > "$LOG" 2>&1
 pkill -9 -x bedrock_server 2>/dev/null
@@ -339,6 +405,7 @@ HALS=$(grep -c "Found Halstest" "$LOG")
 VISSEL=$(grep -c "VISSEL-TEST OK" "$LOG")
 GRAV=$(grep -c "GRAV-TEST OK" "$LOG")
 FOREMAL=$(grep -c "FOREMAL-TEST OK" "$LOG")
+STANNA=$(grep -c "STANNA-TEST OK" "$LOG")
 LAGEATER=$(grep -c "Found Visseltest" "$LOG")
 CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$LOADED" -ge 1 ] && ok "paketet laddades" || bad "paketet laddades INTE"
@@ -351,6 +418,7 @@ CL=$(find "$SRV" -name "ContentLog*" 2>/dev/null | head -1)
 [ "$VISSEL" -ge 1 ] && ok "visslan kallar hem hunden" || bad "visslan hämtade inte hem hunden"
 [ "$LAGEATER" -ge 1 ] && ok "visslan sätter hunden i följaläge igen" || bad "hunden stod kvar i fel läge efter visslan"
 [ "$FOREMAL" -ge 1 ] && ok "boll och vissla är registrerade föremål" || bad "något av våra egna föremål gick inte att skapa"
+[ "$STANNA" -ge 1 ] && ok "stannakommandot håller även när en boll ligger framme" || bad "hunden i stannaläge gick efter bollen"
 [ "$GRAV" -ge 1 ] && ok "hunden gräver upp något" || bad "grävandet gav inget fynd"
 [ "$HARD" -eq 0 ] && ok "inga syntax-/komponentfel" || bad "$HARD allvarliga fel (se $LOG)"
 # VISA DE RADER SOM FÄLLDE KÖRNINGEN, inte filens första fyra. Den gamla

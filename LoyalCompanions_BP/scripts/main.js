@@ -50,10 +50,17 @@ function avstand(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
+// ALLA TRE DIMENSIONERNA. Skriptet arbetade bara i överdimensionen, så en hund
+// man tagit med sig till Nether tappade apport, vissla och grävande utan att
+// något sa ifrån. Listan byggs en gång; getDimension är billigt men inte
+// gratis, och loopen går var femte tick.
+const DIMENSIONER = ["overworld", "nether", "the_end"].map(n => {
+  try { return world.getDimension(n); } catch { return null; }
+}).filter(Boolean);
+
 function hundar(dim) {
   try { return dim.getEntities({ families: [HUND] }); } catch { return []; }
 }
-
 function agare(hund) {
   // ÄGAREN läses ur tameable-komponenten när det går; annars räknas närmaste
   // spelare inom åtta block som mottagare. Reserven finns för att API-nivåer
@@ -94,8 +101,8 @@ function foremalNara(dim, plats, radie) {
 // föremålet finns bara ögonblick, och en loop som tittar en gång i sekunden
 // missar det ungefär varannan gång.
 system.runInterval(() => {
-  const d = world.getDimension("overworld");
   const levande = new Set();
+  for (const d of DIMENSIONER) {
   for (const h of hundar(d)) {
     try {
       levande.add(h.id);
@@ -126,7 +133,8 @@ system.runInterval(() => {
       // VAKTENS VARNING. Hunden morrar när något fientligt närmar sig, men
       // bara i vaktläge och med lång paus — kattpaketets varning sa "your cat
       // bristles" så ofta att den blev tapet, och det var det första Pelle
-      // klagade på.
+      // klagade på. Pausen var först 400 tick, alltså tjugo sekunder: exakt
+      // samma misstag en gång till, bara i hundform.
       if (lage === 2) {
         st.morr = (st.morr ?? 0) - 5;
         if (st.morr <= 0) {
@@ -136,7 +144,7 @@ system.runInterval(() => {
                                      maxDistance: 10 }).length > 0;
           } catch { }
           if (fiende) {
-            st.morr = 400;
+            st.morr = 2400;        // två minuter, se kommentaren ovan
             const pl = agare(h);
             try { d.playSound("mob.wolf.growl", h.location); } catch { }
             if (pl && avstand(pl.location, h.location) < 24) sag(pl, "hund.vakt");
@@ -208,12 +216,16 @@ system.runInterval(() => {
       }
       st.jagar = jagat;
 
-      const vill = nara.length > 0;
+      // STANNA BETYDER STANNA. Apportläget lades på oavsett kommando, och
+      // pickup_items flyttar hunden — en hund man beordrat att stanna gick
+      // alltså sin väg så fort någon tappat en pinne inom sexton block.
+      const vill = nara.length > 0 && lage !== 1;
       if (vill !== st.apport) {
         try { h.triggerEvent(vill ? "hund:apport_pa" : "hund:apport_av"); } catch { }
         st.apport = vill;
       }
     } catch { }
+  }
   }
   for (const id of minne.keys()) if (!levande.has(id)) minne.delete(id);
 }, 5);
@@ -224,8 +236,10 @@ system.runInterval(() => {
 // roligt, och ett glömt stannakommando är den vanligaste vägen dit.
 const VISSELRADIE = 96;
 
-function vissla(plats, pl) {
-  const d = world.getDimension("overworld");
+function vissla(plats, pl, dim) {
+  // SAMMA DIMENSION SOM DEN SOM BLÅSER. En vissla som teleporterar hundar
+  // mellan dimensioner vore inte en vissla, det vore en portal.
+  const d = dim ?? DIMENSIONER[0];
   let n = 0;
   for (const h of hundar(d)) {
     try {
@@ -262,7 +276,7 @@ try {
     try {
       if (ev.itemStack?.typeId !== "hund:vissla") return;
       const pl = ev.source;
-      const n = vissla(pl.location, pl);
+      const n = vissla(pl.location, pl, pl.dimension);
       sag(pl, n ? "hund.vissla.kom" : "hund.vissla.ingen");
       try { pl.dimension.playSound("random.orb", pl.location); } catch { }
     } catch { }
@@ -284,7 +298,7 @@ const SKATT = [
 const SKATTVIKT = SKATT.reduce((a, b) => a + b[1], 0);
 
 function grav(h) {
-  const d = world.getDimension("overworld");
+  const d = h.dimension;
   let r = Math.floor(Math.random() * SKATTVIKT);
   let vald = SKATT[0][0];
   for (const [id, vikt] of SKATT) {
@@ -369,6 +383,30 @@ try {
           else console.warn(`[hund] VISSEL-TEST FEL: ${n} hund(ar), avstand ${a.toFixed(1)}`);
         } catch (e) { console.warn("[hund] VISSEL-TEST FEL: " + e); }
       }, 40);
+    }
+    if (ev.id === "hund:test_stanna") {
+      // STANNA MOT FRESTELSE. En hund i stannaläge ska INTE gå efter en boll.
+      // Buggen var att apportläget slogs på oavsett kommando, och pickup_items
+      // flyttar hunden — stannakommandot gällde tills någon tappade en pinne.
+      const h = hundar(d).find(x => prop(x, "hund:lage", -1) === 1);
+      if (!h) { console.warn("[hund] STANNA-TEST FEL: ingen hund i stannaläge"); return; }
+      const start = { x: h.location.x, y: h.location.y, z: h.location.z };
+      const id = h.id;
+      d.spawnItem(new ItemStack("hund:boll", 1), { x: start.x + 8, y: start.y + 1, z: start.z });
+      system.runTimeout(() => {
+        try {
+          const k = hundar(d).find(x => x.id === id);
+          if (!k) { console.warn("[hund] STANNA-TEST FEL: hunden forsvann"); return; }
+          const flytt = avstand(k.location, start);
+          const bollkvar = d.getEntities({ type: "minecraft:item", location: start,
+                                           maxDistance: 20 }).length;
+          if (flytt < 3 && bollkvar)
+            console.log(`[hund] STANNA-TEST OK: rorde sig ${flytt.toFixed(1)} block, bollen kvar`);
+          else
+            console.warn(`[hund] STANNA-TEST FEL: rorde sig ${flytt.toFixed(1)} block, `
+              + `${bollkvar} bollar kvar`);
+        } catch (e2) { console.warn("[hund] STANNA-TEST FEL: " + e2); }
+      }, 200);
     }
     if (ev.id === "hund:test_foremal") {
       // ÄR VÅRA EGNA FÖREMÅL REGISTRERADE? Ett föremål som inte laddat gör att

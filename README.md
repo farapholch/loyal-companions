@@ -108,6 +108,18 @@ project: one server at a time, or they collide on the ports.
   not.** A wrong tag means a breed that simply never appears, silently. The
   test checks them against vanilla's biome definitions — not against vanilla's
   spawn rules, which use only a handful of them.
+- **Two goals with the same priority is undefined.** `stay_while_sitting` and
+  `melee_attack` both sat on 5; a sitting guard dog was a lottery. The clash
+  only exists in the *combination* of component groups that can be active
+  together, so the test checks the combinations, not the groups.
+- **`minecraft:persistent` on a wild animal never despawns.** Eight breeds
+  that stay forever swell a world year after year. It belongs in the tamed
+  group, not in the base components.
+- **A command has to survive temptation.** Fetch switched on regardless of
+  mode, and `pickup_items` moves the dog — so "stay" lasted until someone
+  dropped a stick within sixteen blocks. The test now proves a staying dog
+  ignores a ball eight blocks away, and that test was verified by putting the
+  bug back and watching it fail.
 - **A here-document terminator must stand alone on its line**: `PY)` is not a
   terminator, and bash silently swallows the rest of the file.
 

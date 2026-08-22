@@ -74,7 +74,6 @@
         "avoid_water": true
       },
       "minecraft:nameable": {},
-      "minecraft:persistent": {},
       "minecraft:behavior.float": {
         "priority": 0
       },
@@ -83,15 +82,15 @@
         "speed_multiplier": 1.4
       },
       "minecraft:behavior.look_at_player": {
-        "priority": 8,
+        "priority": 10,
         "look_distance": 8
       },
       "minecraft:behavior.random_look_around": {
-        "priority": 9
+        "priority": 11
       },
       "minecraft:ambient_sound_interval": {
-        "value": 7.0,
-        "range": 12.0,
+        "value": 20.0,
+        "range": 30.0,
         "event_name": "ambient"
       },
       "minecraft:shareables": {
@@ -131,9 +130,10 @@
     "component_groups": {
       "hund:tamed": {
         "minecraft:is_tamed": {},
+        "minecraft:persistent": {},
         "minecraft:sittable": {},
         "minecraft:behavior.stay_while_sitting": {
-          "priority": 5
+          "priority": 3
         },
         "minecraft:healable": {
           "force_use": true,
@@ -455,19 +455,19 @@
       "hund:stannar": {},
       "hund:vaktar": {
         "minecraft:behavior.follow_owner": {
-          "priority": 8,
+          "priority": 9,
           "speed_multiplier": 1.0,
           "start_distance": 14,
           "stop_distance": 6
         },
         "minecraft:behavior.owner_hurt_by_target": {
-          "priority": 2
+          "priority": 4
         },
         "minecraft:behavior.owner_hurt_target": {
-          "priority": 3
+          "priority": 5
         },
         "minecraft:behavior.nearest_attackable_target": {
-          "priority": 4,
+          "priority": 6,
           "must_see": true,
           "reselect_targets": true,
           "within_radius": 12,
@@ -487,7 +487,7 @@
           ]
         },
         "minecraft:behavior.melee_attack": {
-          "priority": 5
+          "priority": 7
         },
         "minecraft:attack": {
           "damage": 4
@@ -728,6 +728,11 @@
             "hund:valp",
             "hund:tamed",
             "hund:foljer"
+          ]
+        },
+        "remove": {
+          "component_groups": [
+            "hund:vuxen"
           ]
         },
         "set_property": {
