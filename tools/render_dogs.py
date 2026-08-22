@@ -16,6 +16,7 @@ import json, math, os, sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "/opt/purrfect-companions")
+sys.path.insert(0, "/opt/purrfect-companions/tools/promo")
 import render_regression as rr
 
 RP = f"{BASE}/LoyalCompanions_RP"
@@ -99,23 +100,51 @@ def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, halsband=0,
 
 
 def ark():
-    """Kontaktkarta: varje ras framifrån-snett och i profil."""
+    """Kontaktkarta över alla raser — en PRODUKTBILD, inte en felsökningsdump.
+
+    Första versionen var åtta rutor med hård rutnätslinje mot marinblå botten.
+    På sajten såg den ut som ett testutdrag: fel färg mot sidans gröna, och
+    ingen kunde säga vilken hund som var vilken. Nu står namnen under
+    hundarna och bottnen är samma toning som sidan."""
+    import make_video as mv                       # text() lånas från trailern
+
     raser = rasklient()
-    RUTA, KOL = 200, 4
+    RUTA, ETIKETT, KOL = 200, 34, 4
     rader = math.ceil(len(raser) / KOL)
-    W, H = RUTA * KOL, RUTA * rader
-    duk = [[(16, 18, 24, 255)] * W for _ in range(H)]
+    W, H = RUTA * KOL, (RUTA + ETIKETT) * rader
+    # mv.text() klipper mot SIN modulnivås W/H — trailerns 480x270. Utan den
+    # här raden hamnar halva texten utanför duken.
+    mv.W, mv.H = W, H
+    # samma toning som sajtens body (#141a10 → #1c2416), så bilden sitter i
+    # sidan i stället för att ligga ovanpå den
+    duk = [[(int(20 + 8 * y / H), int(26 + 10 * y / H), int(16 + 6 * y / H), 255)
+            for _ in range(W)] for y in range(H)]
     for i, (rasid, geoid, tex) in enumerate(raser):
         bild = rita(geoid, tex, RUTA, RUTA, bar=1 if i % 3 == 0 else 0,
-                    halsband=(i % 8) + 1)
-        rx, ry = (i % KOL) * RUTA, (i // KOL) * RUTA
+                    halsband=(i % 8) + 1, bakgrund=(0, 0, 0, 0))
+        rx, ry = (i % KOL) * RUTA, (i // KOL) * (RUTA + ETIKETT)
+        # PANEL bakom varje hund: en aning ljusare än bottnen, med tunn kant.
+        # Skiljer rutorna åt utan hårda rutnätslinjer, som fick första
+        # versionen att se ut som ett kalkylark.
+        for y in range(ry + 6, ry + RUTA - 2):
+            for x in range(rx + 6, rx + RUTA - 6):
+                kant = min(x - (rx + 6), y - (ry + 6), rx + RUTA - 7 - x, ry + RUTA - 3 - y)
+                duk[y][x] = (40, 52, 34, 255) if kant < 1 else (27, 36, 23, 255)
+        # VIT KONTUR, samma grepp som loggan. Utan den försvinner Pepper —
+        # nästan svart päls mot mörk botten är ingen bild alls.
+        for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, -1), (-1, 1), (1, 1)):
+            for y in range(RUTA):
+                for x in range(RUTA):
+                    if not bild[y][x][3]:
+                        continue
+                    py, px = ry + y + dy, rx + x + dx
+                    if ry <= py < ry + RUTA and rx <= px < rx + RUTA:
+                        duk[py][px] = (232, 240, 246, 255)
         for y in range(RUTA):
             for x in range(RUTA):
-                duk[ry + y][rx + x] = bild[y][x]
-        for x in range(RUTA):                       # rutnät
-            duk[ry][rx + x] = (60, 66, 80, 255)
-        for y in range(RUTA):
-            duk[ry + y][rx] = (60, 66, 80, 255)
+                if bild[y][x][3]:
+                    duk[ry + y][rx + x] = bild[y][x]
+        mv.text(duk, rasid.upper(), rx + RUTA // 2, ry + RUTA + 8, 2, (217, 192, 122, 255))
     os.makedirs(f"{BASE}/publish", exist_ok=True)
     rr.write_png(f"{BASE}/publish/dogs.png", W, H, duk)
     print(f"  publish/dogs.png ({W}x{H}) — {', '.join(r[0] for r in raser)}")

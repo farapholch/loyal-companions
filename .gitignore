@@ -9,3 +9,4 @@ variants.private.json
 # Byggen hör däremot inte hemma i repot — de går till /tmp och laddas upp.
 publish/*.mcaddon
 publish/*.mcworld
+.gstack/
