@@ -99,6 +99,27 @@ def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, halsband=0,
     return cv
 
 
+def framifran(fil="/tmp/framifran.png", raser=("rufus", "dot", "bruno", "kelda")):
+    """RAKT FRAMIFRÅN — vyn spelaren möter när en hund springer emot en.
+
+    Den här vyn saknades helt. Alla bilder var trekvart, och i trekvart döljs
+    just det som gick fel: att kroppen är en pelare, att bringan är en
+    lakansstor vit rektangel och att nosen är ett svart block. Pelles
+    skärmbilder från spelet visade allihop på en gång.
+    """
+    RUTA = 260
+    valda = [r for r in rasklient() if r[0] in raser]
+    W, H = RUTA * len(valda), RUTA
+    duk = [[(26, 30, 38, 255)] * W for _ in range(H)]
+    for i, (rasid, geoid, tex) in enumerate(valda):
+        b = rita(geoid, tex, RUTA, RUTA, yaw=0, pitch=4, pose={}, bakgrund=(26, 30, 38, 255))
+        for y in range(RUTA):
+            for x in range(RUTA):
+                duk[y][i * RUTA + x] = b[y][x]
+    rr.write_png(fil, W, H, duk)
+    print(f"  {fil} — {', '.join(r[0] for r in valda)} rakt framifrån")
+
+
 def ark():
     """Kontaktkarta över alla raser — en PRODUKTBILD, inte en felsökningsdump.
 
@@ -190,6 +211,8 @@ def butiksbild():
 if __name__ == "__main__":
     if sys.argv[1:2] == ["--butik"]:
         butiksbild()
+    elif sys.argv[1:2] == ["--framifran"]:
+        framifran()
     elif len(sys.argv) > 1:
         rasid = sys.argv[1]
         geoid, tex = next((g, t) for r, g, t in rasklient() if r == rasid)

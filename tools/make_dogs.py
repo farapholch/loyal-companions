@@ -40,15 +40,29 @@ RACKVIDD = 16          # hur långt hunden letar efter något att hämta
 # framför kroppen, nosen framför huvudet, svansen bakom. Ändras kroppslängden
 # följer huvudet med, och det är hela poängen med att räkna fram kuberna i
 # stället för att skriva av dem.
-def kroppsdelar(bh=7, kl=12, kb=7, kh=7, hs=6, oron="upp", ludd=False):
-    """bh benhöjd, kl kroppslängd, kb kroppsbredd, kh kroppshöjd, hs huvudstorlek."""
+def kroppsdelar(bh=6, kl=13, kb=7, kh=5.5, hs=6.5, oron="upp", ludd=False):
+    """bh benhöjd, kl kroppslängd, kb kroppsbredd, kh kroppshöjd, hs huvudstorlek.
+
+    PROPORTIONERNA ÄR RÄTTADE MOT SPELET, inte mot en trekvartsrendering. Rakt
+    framifrån — vyn man möter när en hund springer emot en — såg de första
+    måtten ut som en stående figur: kroppens framsida var 7 bred och 7 hög och
+    stod på 7 enheter ben, alltså en smal pelare på fjorton enheter. Nu är
+    kroppen lägre (5,5), benen kortare (6) och huvudet större (6,5), och det
+    sitter NER I BRINGAN i stället för ovanpå ryggen."""
     hz = -kl / 2 - 3                                  # huvudets framkant i z
-    hy = bh + 4                                       # huvudets underkant i y
-    nh = hs - 2.5                                     # nosens höjd
+    # Huvudets underkant låg på bh+4, alltid tre enheter ovanför ryggen — det
+    # gav en liten låda som balanserade på en stor. Nu överlappar det bålen.
+    hy = bh + kh - 3
+    # NOSPARTIET VAR NÄSTAN LIKA BRETT SOM HUVUDET (hs-2 av hs) och nästan lika
+    # högt, så ansiktet framifrån blev en ram runt en platta — och med en stor
+    # svart nos mitt i läste det som en skärm, inte som ett djur. Smalare och
+    # lägre nos ger plats åt ögonen ovanför.
+    nb = hs - 3                                       # nosens bredd
+    nh = hs * 0.45                                    # nosens höjd
     d = [
         ("body", "body", None, [-kb / 2, bh, -kl / 2], [kb, kh, kl]),
         ("head", "head", None, [-hs / 2, hy, hz], [hs, hs, 5]),
-        ("nos", "head", None, [-(hs - 2) / 2, hy + 0.5, hz - 3], [hs - 2, nh, 3]),
+        ("nos", "head", None, [-nb / 2, hy + 0.5, hz - 3], [nb, nh, 3]),
     ]
     # ÖRONEN MÅSTE SYNAS. Första försöket gav hängöron en enhets tjocklek i
     # samma färg som huvudet, och i renderingen fanns de helt enkelt inte —
@@ -100,12 +114,12 @@ def kroppsdelar(bh=7, kl=12, kb=7, kh=7, hs=6, oron="upp", ludd=False):
 
 PIVOT = lambda bh, kl, kb, kh, hs: {
     "body": [0, bh + kh / 2, 0],
-    "head": [0, bh + 6, -kl / 2],          # nacken, där huvudet möter kroppen
+    "head": [0, bh + kh - 2, -kl / 2],     # nacken, där huvudet möter kroppen
     "leg0": [-kb / 2 + 1.5, bh, -kl / 2 + 1.5], "leg1": [kb / 2 - 1.5, bh, -kl / 2 + 1.5],
     "leg2": [-kb / 2 + 1.5, bh, kl / 2 - 1.5], "leg3": [kb / 2 - 1.5, bh, kl / 2 - 1.5],
     "tail": [0, bh + kh - 2, kl / 2],
-    "mun_boll": [0, bh + 6, -kl / 2], "mun_pinne": [0, bh + 6, -kl / 2],
-    "mun_ben": [0, bh + 6, -kl / 2],
+    "mun_boll": [0, bh + kh - 2, -kl / 2], "mun_pinne": [0, bh + kh - 2, -kl / 2],
+    "mun_ben": [0, bh + kh - 2, -kl / 2],
     **{f"hals{i}": [0, bh + kh / 2, -kl / 2] for i in range(1, 9)},
 }
 
@@ -118,12 +132,12 @@ HALSBAND = [("red", (176, 46, 38)), ("orange", (216, 122, 30)),
 
 # (namn, benhöjd, kroppslängd, kroppsbredd, kroppshöjd, huvud, öron, ludd)
 KROPPAR = {
-    "normal":  (7, 12, 7, 7, 6, "upp", False),
-    "hang":    (7, 12, 7, 7, 6, "hang", False),
-    "ludd":    (7, 12, 7, 7, 6, "upp", True),
-    "kort":    (3, 16, 7, 6, 5, "lang", False),      # tax: låg, lång, långa öron
-    "tung":    (8, 13, 8, 8, 7, "hang", False),      # bernhardshund
-    "liten":   (5, 10, 6, 6, 5, "upp", False),       # terrier
+    "normal":  (6, 13, 7, 5.5, 6.5, "upp", False),
+    "hang":    (6, 13, 7, 5.5, 6.5, "hang", False),
+    "ludd":    (6, 12, 7, 5.5, 6.5, "upp", True),
+    "kort":    (3, 16, 7, 5, 5.5, "lang", False),     # tax: låg, lång, långa öron
+    "tung":    (7, 14, 8, 6.5, 7.5, "hang", False),   # bernhardshund
+    "liten":   (4.5, 10, 6, 5, 5.5, "upp", False),    # terrier
 }
 
 
@@ -227,6 +241,16 @@ def pals(rasid, delar, uv, farg):
                 if 0 <= x < TW and 0 <= y < TH:
                     px[y][x] = c
 
+    def irect(x0, y0, w, h, c):
+        """Detaljer i HELA pixlar. rect() rundar utåt i båda ändar, så en
+        nostipp på 2x1,5 pixlar mitt på ett nosparti med bruten bredd blev
+        3x2 — nästan dubbelt så stor, och ansiktet läste som en skärm med en
+        svart platta. Ögonens kontrastfläckar drabbades likadant."""
+        for y in range(int(round(y0)), int(round(y0)) + int(h)):
+            for x in range(int(round(x0)), int(round(x0)) + int(w)):
+                if 0 <= x < TW and 0 <= y < TH:
+                    px[y][x] = c
+
     sidor = {}
     for i, (roll, benamn, _f, _o, size) in enumerate(delar):
         b, h, d = size
@@ -258,23 +282,46 @@ def pals(rasid, delar, uv, farg):
     for f, size in sidor["head"]:
         hs = size[0]
         fx, fy, fw, fh = f["north"]
-        # ÖGONHÖJDEN ÄR UTRÄKNAD, inte prövad: nosen (höjd hs-2.5, start +0.5)
-        # skymmer allt under sin överkant, vilket lämnar exakt rad 1 fri.
-        rect(fx + 1, fy + 1, 1, 1, farg["ogon"] + (255,))
-        rect(fx + hs - 2, fy + 1, 1, 1, farg["ogon"] + (255,))
+        # ÖGONHÖJDEN ÄR UTRÄKNAD, inte prövad. Nosen börjar på +0,5 och är
+        # hs*0,45 hög; allt under dess överkant är skymt. Ögonen läggs på den
+        # LÄGSTA rad som fortfarande syns — det är där en hund har ögonen.
+        synliga = hs - (0.5 + hs * 0.45)
+        rad = max(0, int(synliga) - 1)
+        # KONTRASTFLÄCK bakom ögat. Ett brunt öga i brun päls syns inte alls i
+        # spelet, och det var precis vad skärmbilderna visade. Fläcken går åt
+        # motsatt håll mot pälsen, så ögat läser på både Dot och Truffle.
+        ljus = sum(farg["pals"]) / 3
+        kontrast = sh(farg["pals"], 0.55 if ljus > 130 else 1.7)
+        for ox in (1, hs - 2):
+            irect(fx + ox, fy + rad, 1, 1, kontrast)
+            irect(fx + ox, fy + rad, 1, 1, farg["ogon"] + (255,))
+            irect(fx + ox, fy + rad + 1, 1, 1, kontrast)     # kontrast under ögat
     for f, size in sidor["nos"]:
+        # NOSTIPPEN ÄR EN TIPP, inte en mask. Den täckte hela nospartiets
+        # framsida minus en enhet på vardera sidan, och i spelet läste ansiktet
+        # som en stor svart fyrkant. Nu en liten fyrkant mitt på, med ljusare
+        # nosparti runt så formen syns.
         fx, fy, fw, fh = f["north"]
-        rect(fx + 1, fy, fw - 2, 2, (24, 22, 22, 255))     # svart nostipp
+        rect(fx, fy, fw, fh, sh(farg["under"], 0.96))
+        irect(fx + fw / 2 - 1, fy, 2, 1, (26, 24, 24, 255))
+        tx, ty, tw_, th_ = f["top"]
+        rect(tx, ty, tw_, th_, sh(farg["pals"], 1.06))     # nosryggen i pälsfärg
     rr.write_png(f"{RP}/textures/entity/{rasid}.png", TW, TH, px)
 
 
 def m_brost(rect, sidor, farg):
-    """Ljus bringa: kroppens framsida och undersida."""
+    """Ljus bringa — en SMAL kil, inte en haklapp.
+
+    Första versionen målade hela framsidan minus en enhets marginal ljus, och i
+    spelet blev det en vit rektangel som såg ut som ett förkläde. En bringa är
+    smalare än bröstkorgen och smalnar av nedåt."""
     for f, size in sidor["body"]:
         fx, fy, fw, fh = f["north"]
-        rect(fx + 1, fy + fh / 2, fw - 2, fh / 2, sh(farg["under"], 1.0))
+        for i in range(int(fh / 2)):
+            b = max(2, fw - 3 - i)                     # smalnar av nedåt
+            rect(fx + (fw - b) / 2, fy + fh / 2 + i, b, 1, sh(farg["under"], 1.0))
         bx, by, bw, bh = f["bottom"]
-        rect(bx, by, bw, bh, sh(farg["under"], 0.8))
+        rect(bx + 1, by, bw - 2, bh, sh(farg["under"], 0.8))
 
 
 def m_sockor(rect, sidor, farg):

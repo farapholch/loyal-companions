@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.3.0
+
+**Hundarna såg ut som stående figurer i spelet.** Pelles skärmbilder visade
+det jag aldrig hade tittat på: rakt framifrån, vyn man möter när en hund
+springer emot en. Alla mina egna bilder var trekvartsvy, och i trekvart döljs
+precis det som var fel.
+
+- **Proportionerna.** Kroppens framsida var lika hög som bred och stod på lika
+  höga ben — en smal pelare på fjorton enheter. Kroppen är nu lägre, benen
+  kortare och huvudet större, och det sitter ner i bringan i stället för att
+  balansera ovanpå ryggen.
+- **Nospartiet** var nästan lika brett som huvudet och nosen täckte det mesta
+  av det. Ansiktet läste som en skärm med en svart platta. Nu smalare nosparti,
+  liten nostipp och plats åt ögonen ovanför.
+- **Ögonen syntes inte** på enfärgade hundar — ett brunt öga i brun päls är
+  ingenting. Varje öga har nu en kontrastfläck som går åt motsatt håll mot
+  pälsen.
+- **Bringan** var en vit rektangel över hela framsidan och såg ut som ett
+  förkläde. Nu en smal kil som smalnar av nedåt.
+- **Detaljer i ansiktet ritas i hela pixlar.** Ritfunktionen rundar utåt i båda
+  ändar, så en nostipp på 2x1,5 pixlar blev 3x2 — nästan dubbelt så stor.
+
+`tools/render_dogs.py --framifran` finns nu, så vyn aldrig mer är ogranskad.
+
 ## 1.2.1
 
 Ingen ny funktion — tre saker som var otestade är det inte längre:
