@@ -10,7 +10,10 @@
 set -u
 SRC=/opt/loyal-companions
 BUMP=""; UPLOAD=1; VARIANT="private"; CURSEFORGE=0
+# Token:en är knuten till FÖRFATTARKONTOT, inte till projektet — kattpaketets
+# duger lika bra om hundprojektet inte har en egen fil.
 CF_TOKEN_FILE="$SRC/.curseforge-token"
+[ -f "$CF_TOKEN_FILE" ] || CF_TOKEN_FILE=/opt/purrfect-companions/.curseforge-token
 CF_PROJECT_FILE="$SRC/.curseforge-project"
 CF_API=https://bedrock.curseforge.com/api
 while [ $# -gt 0 ]; do
@@ -123,7 +126,10 @@ ver, ut, src = sys.argv[1], sys.argv[2], sys.argv[3]
 # BARA NYASTE POSTEN. Kattprojektet skickade hela changeloggen och fick 500
 # "unhandled exception" vid 28 452 tecken två gånger i rad. En release-not ska
 # ändå handla om just den releasen.
-full = open(f"{src}/CHANGELOG.md", encoding="utf-8").read()
+# BUTIKENS SPRÅK ÄR ENGELSKA. CHANGELOG.md är projektets egen logg och är på
+# svenska; publish/release-notes.md är samma historia för läsaren på
+# butikssidan. Skickas fel fil står det svenska på en engelsk produktsida.
+full = open(f"{src}/publish/release-notes.md", encoding="utf-8").read()
 senaste = full.split("\n## ")[1] if "\n## " in full else full
 kort = "## " + senaste.split("\n## ")[0].rstrip()
 json.dump({"changelog": kort, "changelogType": "markdown",
