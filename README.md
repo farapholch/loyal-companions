@@ -57,25 +57,6 @@ breed fed steak produce a puppy, and the puppy is born already yours.
 **Sound like dogs.** Pitch follows size: the Pomeranian yaps and the Saint
 Bernard rumbles.
 
-## How it is built
-
-Nothing is drawn or written by hand that can be computed from a table.
-
-| Script | Owns |
-|---|---|
-| `tools/make_dogs.py` | Geometries, coats, entities, client definitions, spawn eggs, spawn rules, render controller, sounds, items, language |
-| `tools/render_dogs.py` | Preview renders straight from the pack's own files |
-| `tools/make_promo.py` | Pack icon and store hero image |
-| `tools/loyal-test` | JSON and PNG validation, structure checks, a real Bedrock server run, and a real client connecting over the network |
-| `tools/loyal-uthallighet` | What only shows over time and scale: does the state survive a restart, what does the loop cost with thirty dogs |
-| `tools/make_logo.py` | The framed 512×512 logo the pack icon is derived from |
-| `tools/loyal-ship` | Build → test → package → Mod Mate, refuses to send a failing build |
-| `publish_site.sh` | Publishes loyal.pelleops.se (pages and pictures only — the pack is downloaded from the stores, not from us) |
-| `make_variant.py` | Public build vs the family build; private names never enter the repo |
-
-`tools/loyal-test` shares the Bedrock server lock (`/tmp/bds.lock`) with the cat
-project: one server at a time, or they collide on the ports.
-
 ### Traps already paid for
 
 - **`minecraft:behavior.pickup_items` alone does nothing.** A dog with the
@@ -123,31 +104,3 @@ project: one server at a time, or they collide on the ports.
   bug back and watching it fail.
 - **A here-document terminator must stand alone on its line**: `PY)` is not a
   terminator, and bash silently swallows the rest of the file.
-
-### What a real client proves
-
-`tools/testbot/smoke-test.js` connects an actual Bedrock client over the
-network. It is the only thing here that sees the pack the way a player's game
-does: that all ten custom items reach the client's item registry, that the
-whistle can be given and lands in an inventory, that the dogs stream in with
-the right type names, and that **entity property syncs flow to the client**.
-That last one matters more than it sounds: the collar and the ball in the
-mouth are drawn by `part_visibility`, which reads those properties on the
-client. The server setting `hund:halsband` proves nothing about the client
-being told.
-
-`tools/loyal-uthallighet` covers the other blind spot, time and scale: the
-tame flag, command mode, collar colour, carried item and its dynamic property
-all survive a server restart (that was a claim in a comment, unverified, until
-it was measured), and thirty-one dogs cost 0.09 ms per loop pass against a
-50 ms tick budget.
-
-### What is not verified here
-
-The server has no renderer and no audio, so three things are only checked by
-eye and ear in the game: that the collar and the ball in the mouth actually
-**look** right (the data behind them is now proven to reach the client), that
-the sounds play, and that the coats read well on a real screen.
-Everything else — spawning, taming, command modes, fetch, puppies, the collar
-property, the whistle, digging — is proven by `tools/loyal-test` against a real
-Bedrock server on every run.
