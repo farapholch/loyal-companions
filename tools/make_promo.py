@@ -13,7 +13,7 @@ som ett trasigt paket långt innan någon provat det.
 
     python3 tools/make_promo.py
 """
-import math, os, shutil, sys
+import math, os, runpy, shutil, sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "/opt/purrfect-companions")
@@ -181,39 +181,33 @@ def hero():
 
 
 def paketikon():
-    """256x256 hundporträtt mot varm fond, kopierad in i båda paketen."""
+    """256x256 paketikon, HÄRLEDD UR LOGGAN i stället för en egen rendering.
+
+    Kattpaketet gör likadant, och skälet är inte lathet: två bilder som ska
+    föreställa samma märke glider isär så fort den ena ändras. En paketikon
+    som saknas ger dessutom en grå ruta i spelets paketlista, och det ser ut
+    som ett trasigt paket långt innan någon provat det."""
+    kalla = f"{BASE}/publish/logo.png"
+    if not os.path.exists(kalla):
+        runpy.run_path(f"{BASE}/tools/make_logo.py", run_name="__main__")
+    lw, lh, lpx = rr.read_png(kalla)
     N = 256
-    duk_ = []
-    for y in range(N):
-        k = y / N
-        duk_.append([(int(58 + 40 * k), int(46 + 34 * k), int(38 + 30 * k), 255)] * N)
-    geoid, tex = next((g, t) for r, g, t in rd.rasklient() if r == "rufus")
-    S = 384
-    src = rd.rita(geoid, tex, S, S, yaw=20, pitch=8, bar=1, halsband=1, bakgrund=NYCKEL)
-    # FYLL RUTAN. Renderaren har fast kamera med luft runt modellen, och en
-    # paketikon som är till en tredjedel bakgrund läser som en brun klump i
-    # spelets paketlista. Beskärningen MÄTS ur bilden i stället för att gissas.
-    ritat = [(x, y) for y in range(S) for x in range(S) if src[y][x][:3] != NYCKEL[:3]]
-    x0 = min(p[0] for p in ritat); x1 = max(p[0] for p in ritat)
-    y0 = min(p[1] for p in ritat); y1 = max(p[1] for p in ritat)
-    sida = int((max(x1 - x0, y1 - y0) + 1) * 1.10)      # lite luft, annars nyps öronen av
-    cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-    for y in range(N):
-        for x in range(N):
-            sx = cx - sida // 2 + x * sida // N
-            sy = cy - sida // 2 + y * sida // N
-            if 0 <= sx < S and 0 <= sy < S and src[sy][sx][:3] != NYCKEL[:3]:
-                duk_[y][x] = src[sy][sx]
-    for i, m in enumerate((0.55, 0.75)):                 # ram
-        c = (int(226 * m), int(178 * m), int(84 * m), 255)
-        for t in range(N):
-            duk_[i][t] = duk_[N - 1 - i][t] = c
-            duk_[t][i] = duk_[t][N - 1 - i] = c
+    # NÄRMASTE GRANNE, inte medelvärde: ramens tunna linjer och pixelgräset blir
+    # gröt av interpolation, och hela poängen med bilden är att den är pixlig.
+    liten = [[lpx[y * lh // N][x * lw // N] for x in range(N)] for y in range(N)]
     p = f"{BASE}/publish/pack_icon.png"
-    rr.write_png(p, N, N, duk_)
+    rr.write_png(p, N, N, liten)
     for pack in ("LoyalCompanions_BP", "LoyalCompanions_RP"):
         shutil.copy(p, f"{BASE}/{pack}/pack_icon.png")
-    print(f"  publish/pack_icon.png ({N}x{N}) → båda paketen")
+    print(f"  publish/pack_icon.png ({N}x{N}, ur loggan) → båda paketen")
+    # Sajtens ikoner ur samma källa. En favicon som saknas ger en trasig ruta i
+    # flikraden och en apple-touch-icon som saknas ger en skärmdump av sidan
+    # när någon sparar den på hemskärmen.
+    for namn, storlek in (("favicon.png", 64), ("apple-touch-icon.png", 180)):
+        rr.write_png(f"{BASE}/publish/{namn}", storlek, storlek,
+                     [[lpx[y * lh // storlek][x * lw // storlek] for x in range(storlek)]
+                      for y in range(storlek)])
+    print("  publish/favicon.png + apple-touch-icon.png")
 
 
 if __name__ == "__main__":

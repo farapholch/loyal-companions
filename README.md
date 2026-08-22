@@ -4,6 +4,8 @@ Minecraft **Bedrock** add-on: eight hand-made dogs to tame, train and take with
 you. Sibling project to [Purrfect Companions](https://purrfect.pelleops.se) —
 same machinery, other animal.
 
+**[loyal.pelleops.se](https://loyal.pelleops.se)** — download and screenshots.
+
 ![the dogs](publish/hero.png)
 
 ## The dogs
@@ -65,7 +67,9 @@ Nothing is drawn or written by hand that can be computed from a table.
 | `tools/render_dogs.py` | Preview renders straight from the pack's own files |
 | `tools/make_promo.py` | Pack icon and store hero image |
 | `tools/loyal-test` | JSON and PNG validation, structure checks, a real Bedrock server run |
+| `tools/make_logo.py` | The framed 512×512 logo the pack icon is derived from |
 | `tools/loyal-ship` | Build → test → package → Mod Mate, refuses to send a failing build |
+| `publish_site.sh` | Publishes loyal.pelleops.se, and builds the download it publishes |
 | `make_variant.py` | Public build vs the family build; private names never enter the repo |
 
 `tools/loyal-test` shares the Bedrock server lock (`/tmp/bds.lock`) with the cat

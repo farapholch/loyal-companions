@@ -4,4 +4,8 @@ __pycache__/
 .modmate-code
 .curseforge-token
 variants.private.json
-publish/
+# publish/ ÄR VERSIONSHANTERAD: README och sajten pekar på bilderna där, och en
+# README med trasiga bildlänkar på GitHub är sämre än 90 kB genererade PNG:er.
+# Byggen hör däremot inte hemma i repot — de går till /tmp och laddas upp.
+publish/*.mcaddon
+publish/*.mcworld
