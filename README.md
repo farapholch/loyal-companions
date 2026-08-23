@@ -4,7 +4,7 @@ Minecraft **Bedrock** add-on: eight hand-made dogs to tame, train and take with
 you. Sibling project to [Purrfect Companions](https://purrfect.pelleops.se) —
 same machinery, other animal.
 
-**[loyal.pelleops.se](https://loyal.pelleops.se)** — download and screenshots.
+[CurseForge](https://www.curseforge.com/minecraft-bedrock/addons/loyal-companions-dogs) · **[loyal.pelleops.se](https://loyal.pelleops.se)** — download and screenshots.
 
 ![the dogs](publish/hero.png)
 
