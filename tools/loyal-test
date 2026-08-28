@@ -168,6 +168,35 @@ for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
                 if delade and pas:
                     bad.append(f"{namn}: {ev} lägger på {a} utan att ta bort {b} "
                                f"— båda sätter {', '.join(sorted(delade))}")
+# RASERNA MÅSTE VARA OLIKA ATT ANVÄNDA. Fram till 2026-08-28 hade alla åtta
+# exakt samma liv, fart, bett och träffyta — de skilde sig bara i modellens
+# storlek och päls, medan sajten lovade att de inte är omfärgningar. Ett värde
+# som råkar bli lika för alla igen är tyst: paketet fungerar, men löftet gäller
+# inte längre.
+_matt = {}
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
+    e = json.load(open(f))["minecraft:entity"]
+    c, g = e["components"], e["component_groups"]
+    _matt.setdefault("liv", set()).add(c["minecraft:health"]["value"])
+    _matt.setdefault("fart", set()).add(c["minecraft:movement"]["value"])
+    _matt.setdefault("träffyta", set()).add(c["minecraft:collision_box"]["width"])
+    _matt.setdefault("bett", set()).add(
+        g.get("hund:vaktar", {}).get("minecraft:attack", {}).get("damage"))
+    _matt.setdefault("apport", set()).add(
+        g.get("hund:apporterar", {}).get("minecraft:behavior.pickup_items", {}).get("max_dist"))
+for _namn, _v in sorted(_matt.items()):
+    if len(_v) < 3:
+        bad.append(f"{_namn} har bara {len(_v)} olika värde(n) över åtta raser "
+                   f"({sorted(x for x in _v if x is not None)}) — raserna är omfärgningar igen")
+# ...och skriptets tabell måste täcka varje ras, annars faller en tyst tillbaka
+# på standardvärdet och dess särdrag försvinner utan att synas.
+_rj = open(f"{SRC}/LoyalCompanions_BP/scripts/raser.js", encoding="utf-8").read()
+_tab = json.loads(re.search(r"export const RASER = (\{.*?\});", _rj, re.S).group(1))
+for f in glob.glob(f"{SRC}/LoyalCompanions_BP/entities/*.json"):
+    _id = json.load(open(f))["minecraft:entity"]["description"]["identifier"]
+    if _id not in _tab:
+        bad.append(f"raser.js saknar {_id} — kör tools/make_dogs.py")
+
 # BIOMTAGGEN MÅSTE FINNAS. "mountain" ser rimlig ut, heter "extreme_hills" och
 # ger en ras som helt enkelt aldrig dyker upp i världen — utan ett ord någonstans.
 # Facit är vaniljas BIOMDEFINITIONER, inte dess spawnregler: taggar som

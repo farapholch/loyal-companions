@@ -4,6 +4,30 @@ CHANGELOG.md är projektets egen logg och är på svenska. Butikssidan är på
 engelska, och en svensk release-not där är fel språk för läsaren. Den här
 filen är vad tools/loyal-ship skickar till CurseForge.
 
+## 1.4.0
+
+**The eight dogs are different to use now.** Until today they had the same
+health, the same speed, the same bite and the same hitbox — they differed only
+in the size of the model and the coat. The models really are built from each
+breed's own measurements, but a Saint Bernard ran as fast and bit as hard as a
+Jack Russell.
+
+Now each breed connects to something the pack already did:
+
+- **Bruno** the Saint Bernard: 26 health, the hardest bite, the slowest walk
+- **Scout** the Jack Russell: the fastest, and the easiest to hurt
+- **Pickle** the dachshund digs **twice as often** as anyone else, because a
+  dachshund is bred to dig
+- **Rufus** the retriever fetches from 24 blocks, against 10 for the shortest
+  reach
+- **Truffle** the Pomeranian senses a threat at 20 blocks where Bruno needs 12 —
+  small watchdogs hear it first
+
+The hitbox follows the dog's size as well. It was the same for all eight, so a
+Pomeranian was as wide to walk into as a Saint Bernard.
+
+You pick a dog for the job now, not for the coat.
+
 ## 1.3.0
 
 Dogs looked like standing figures in game — the body's front was as tall as it

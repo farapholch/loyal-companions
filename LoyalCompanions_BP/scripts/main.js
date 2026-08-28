@@ -1,4 +1,5 @@
 import { world, system, ItemStack } from "@minecraft/server";
+import { RASER } from "./raser.js";
 
 // ---------------------------------------------------------------------------
 // Loyal Companions — allt som inte går att uttrycka i entitets-JSON.
@@ -127,8 +128,12 @@ system.runInterval(() => {
 
       if (prop(h, "hund:tam", 0) !== 1) continue;
 
-      st.klocka = (st.klocka ?? Math.floor(Math.random() * GRAVPAUS)) + 5;
-      if (st.klocka >= GRAVPAUS) {
+      // GRÄVPAUSEN ÄR RASENS. En tax är avlad för att gräva och gör det dubbelt
+      // så ofta som en bernhardshund. Multiplikatorn kommer ur raser.js, som
+      // generatorn skriver ur samma tabell som entiteterna byggs av.
+      const gravPaus = GRAVPAUS * (RASER[h.typeId]?.grav ?? 1);
+      st.klocka = (st.klocka ?? Math.floor(Math.random() * gravPaus)) + 5;
+      if (st.klocka >= gravPaus) {
         st.klocka = 0;
         // bara när någon ser det: en hund som gräver i en tom chunk är bara
         // skräp på marken
@@ -146,8 +151,10 @@ system.runInterval(() => {
         if (st.morr <= 0) {
           let fiende = false;
           try {
+            // VARSLET ÄR RASENS. En pomeranian hör och skäller långt före en
+            // bernhardshund — det är vad små vakthundar ÄR till för.
             fiende = d.getEntities({ families: ["monster"], location: h.location,
-                                     maxDistance: 10 }).length > 0;
+                                     maxDistance: RASER[h.typeId]?.varsel ?? 10 }).length > 0;
           } catch { }
           if (fiende) {
             st.morr = 2400;        // två minuter, se kommentaren ovan

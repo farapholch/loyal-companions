@@ -57,15 +57,15 @@
         "max": 20
       },
       "minecraft:collision_box": {
-        "width": 0.7,
-        "height": 0.9
+        "width": 0.66,
+        "height": 0.85
       },
       "minecraft:physics": {},
       "minecraft:pushable": {
         "is_pushable": true
       },
       "minecraft:movement": {
-        "value": 0.33
+        "value": 0.35
       },
       "minecraft:movement.basic": {},
       "minecraft:jump.static": {},
@@ -496,7 +496,7 @@
       "hund:apporterar": {
         "minecraft:behavior.pickup_items": {
           "priority": 2,
-          "max_dist": 16,
+          "max_dist": 18,
           "goal_radius": 1.6,
           "speed_multiplier": 1.3,
           "pickup_based_on_chance": false,

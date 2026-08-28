@@ -29,6 +29,7 @@ img.logga{display:block;margin:0 auto 14px;width:min(240px,60%);height:auto;
  color:#fff;font-weight:600;font-size:.95rem}
 table{width:100%;border-collapse:collapse;font-size:.92rem;margin-bottom:10px}
 th,td{text-align:left;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.09)}
+td.num{font-variant-numeric:tabular-nums;color:#f0e2b0}
 th{color:#d9c07a;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
 ul{margin:0 0 12px 20px;color:rgba(255,255,255,.82);line-height:1.75}
 li b{color:#f0e2b0}
@@ -79,16 +80,21 @@ Bernard rumbles.</li>
 <h2>The eight</h2>
 <img class="hero" src="dogs.png" alt="All eight dogs, rendered from the pack's own models">
 <table>
-<tr><th>Name</th><th>Breed</th><th>What you notice</th><th>Lives in</th></tr>
-<tr><td>Truffle</td><td>Pomeranian</td><td>small, dark, a ruff and a bushy tail</td><td>plains</td></tr>
-<tr><td>Rufus</td><td>Golden Retriever</td><td>big, gold, hanging ears</td><td>forest</td></tr>
-<tr><td>Kelda</td><td>Siberian Husky</td><td>silver, dark mask, blue eyes</td><td>taiga</td></tr>
-<tr><td>Pepper</td><td>Border Collie</td><td>black with a white blaze</td><td>plains</td></tr>
-<tr><td>Pickle</td><td>Dachshund</td><td>low, long, ears down to the chin</td><td>plains</td></tr>
-<tr><td>Bruno</td><td>Saint Bernard</td><td>tall, broad, heavy head</td><td>mountains</td></tr>
-<tr><td>Dot</td><td>Dalmatian</td><td>white with black spots</td><td>plains</td></tr>
-<tr><td>Scout</td><td>Jack Russell</td><td>small, quick, tan saddle</td><td>plains</td></tr>
+<tr><th>Name</th><th>Breed</th><th>Health</th><th>Speed</th><th>Bite</th><th>Best at</th><th>Lives in</th></tr>
+<tr><td>Truffle</td><td>Pomeranian</td><td class="num">12</td><td class="num">0.34</td><td class="num">2</td><td>warning you</td><td>plains</td></tr>
+<tr><td>Rufus</td><td>Golden Retriever</td><td class="num">22</td><td class="num">0.33</td><td class="num">4</td><td>fetching</td><td>forest</td></tr>
+<tr><td>Kelda</td><td>Siberian Husky</td><td class="num">22</td><td class="num">0.34</td><td class="num">4</td><td>stamina</td><td>taiga</td></tr>
+<tr><td>Pepper</td><td>Border Collie</td><td class="num">20</td><td class="num">0.35</td><td class="num">4</td><td>keeping up</td><td>plains</td></tr>
+<tr><td>Pickle</td><td>Dachshund</td><td class="num">16</td><td class="num">0.27</td><td class="num">3</td><td>digging</td><td>plains</td></tr>
+<tr><td>Bruno</td><td>Saint Bernard</td><td class="num">26</td><td class="num">0.28</td><td class="num">6</td><td>guarding</td><td>mountains</td></tr>
+<tr><td>Dot</td><td>Dalmatian</td><td class="num">20</td><td class="num">0.36</td><td class="num">4</td><td>running</td><td>plains</td></tr>
+<tr><td>Scout</td><td>Jack Russell</td><td class="num">14</td><td class="num">0.4</td><td class="num">3</td><td>speed</td><td>plains</td></tr>
 </table>
+<p>The numbers are not decoration. Bruno takes twice the punishment Truffle
+does and bites three times as hard; Scout is half again as fast; Pickle digs
+twice as often as anyone, because a dachshund is bred to. You pick a dog for the
+job, not for the coat.</p>
+
 <p>Tame them with <b>bones</b> — about a third of the time per bone, so it
 costs a few.</p>
 

@@ -17,16 +17,21 @@ really is low and long and a Saint Bernard really is heavy. Four coloured
 copies of one model looked identical from across a field; that is what this
 replaced.
 
-| Entity | Name | Breed | Build | Scale | Lives in |
-|---|---|---|---|---|---|
-| `hund:truffle` | Truffle | Pomeranian | ruff and a bushy tail | 0.68 | plains |
-| `hund:rufus` | Rufus | Golden Retriever | hanging ears, cream chest | 1.05 | forest |
-| `hund:kelda` | Kelda | Siberian Husky | dark mask, blue eyes, white socks | 1.00 | taiga |
-| `hund:pepper` | Pepper | Border Collie | black with a white blaze | 0.95 | plains |
-| `hund:pickle` | Pickle | Dachshund | short legs, long body, long ears | 0.80 | plains |
-| `hund:bruno` | Bruno | Saint Bernard | tall, broad, heavy head | 1.20 | extreme hills |
-| `hund:dot` | Dot | Dalmatian | white with spots | 1.00 | plains |
-| `hund:scout` | Scout | Jack Russell Terrier | small, tan saddle | 0.75 | plains |
+| Entity | Name | Breed | Health | Speed | Bite | Best at | Lives in |
+|---|---|---|---|---|---|---|---|
+| `hund:truffle` | Truffle | Pomeranian | 12 | 0.34 | 2 | warning you | plains |
+| `hund:rufus` | Rufus | Golden Retriever | 22 | 0.33 | 4 | fetching | forest |
+| `hund:kelda` | Kelda | Siberian Husky | 22 | 0.34 | 4 | stamina | taiga |
+| `hund:pepper` | Pepper | Border Collie | 20 | 0.35 | 4 | keeping up | plains |
+| `hund:pickle` | Pickle | Dachshund | 16 | 0.27 | 3 | digging | plains |
+| `hund:bruno` | Bruno | Saint Bernard | 26 | 0.28 | 6 | guarding | extreme hills |
+| `hund:dot` | Dot | Dalmatian | 20 | 0.36 | 4 | running | plains |
+| `hund:scout` | Scout | Jack Russell Terrier | 14 | 0.4 | 3 | speed | plains |
+
+The numbers are not decoration. Bruno takes twice the punishment Truffle does and
+bites three times as hard; Scout is half again as fast; Pickle digs twice as
+often as anyone, because a dachshund is bred to. You pick a dog for the job, not
+for the coat.
 
 Tame them with **bones** — a third of the time per bone, so it costs a few.
 

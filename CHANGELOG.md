@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.4.0
+
+**De åtta hundarna är olika att använda nu.** Fram till i dag hade de exakt
+samma liv (20), fart (0,33), bett (4) och träffyta (0,7) — de skilde sig bara i
+modellens storlek och päls. Sajten lovade "they are not reskins", och det var
+sant om MODELLERNA, men en bernhardshund sprang lika fort och bet lika hårt som
+en jack russell.
+
+Varje ras kopplar nu till en mekanik som redan fanns:
+
+- **Bruno** (bernhardshund) 26 liv, bett 6, långsammast — vakthunden
+- **Scout** (jack russell) fart 0,40, 14 liv — snabbast och skörast
+- **Pickle** (tax) gräver DUBBELT så ofta; han är avlad för det
+- **Rufus** (golden retriever) hämtar från 24 block mot 10 för den kortaste
+- **Truffle** (pomeranian) känner ett hot på 20 block mot Brunos 12 — små
+  vakthundar hör och skäller först
+- Kelda, Pepper och Dot fördelar sig däremellan
+
+**Träffytan följer storleken.** Den var 0,7 för alla åtta, så en pomeranian på
+skala 0,68 var lika bred att gå in i som en bernhardshund på 1,2.
+`minecraft:scale` skalar modellen, inte kollisionslådan.
+
+Grävfrekvensen och varslet bor i skriptet, som inte kan läsa entitets-JSON, och
+genereras därför till `scripts/raser.js` ur samma tabell som entiteterna byggs
+av. En ny spärr fäller om något mått blir lika för alla åtta igen — provad mot
+åtta hundar med samma liv.
+
 ## 1.3.0
 
 **Hundarna såg ut som stående figurer i spelet.** Pelles skärmbilder visade

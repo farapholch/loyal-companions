@@ -65,7 +65,7 @@
         "is_pushable": true
       },
       "minecraft:movement": {
-        "value": 0.33
+        "value": 0.36
       },
       "minecraft:movement.basic": {},
       "minecraft:jump.static": {},

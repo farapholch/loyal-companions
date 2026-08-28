@@ -392,31 +392,48 @@ MONSTER = {"brost": m_brost, "sockor": m_sockor, "blas": m_blas,
 # Åtta hundar som ska gå att skilja åt på en halv sekund. Det kräver spridning i
 # TRE saker samtidigt: storlek, färg och siluett — samma insikt som kattpaketets
 # logga gav, att det är kontrasten som gör att man ser VAD något är.
+#
+# ...OCH DE SKA VARA OLIKA ATT ANVÄNDA. Fram till 2026-08-28 hade alla åtta
+# exakt samma liv (20), fart (0,33), bett (4) och träffyta (0,7): de skilde sig
+# bara i modellens storlek och päls. Sajten lovade "they are not reskins", och
+# det var sant om MODELLERNA — men en bernhardshund sprang lika fort och bet
+# lika hårt som en jack russell. Grispaketet gjorde tvärtom två dagar senare,
+# och den regeln gäller här också: man väljer hund efter uppgift, inte färg.
+#
+# Varje rad kopplar till en mekanik som redan finns. Taxen är avlad för att
+# gräva, retrievern för att apportera, den lilla hunden hör och skäller först.
+#
+#   liv    minecraft:health
+#   fart   minecraft:movement
+#   bett   attackskadan i vaktläge
+#   apport hur långt hunden letar efter något att hämta (pickup_items max_dist)
+#   grav   multiplikator på grävpausen — LÄGRE betyder oftare
+#   varsel hur långt hunden känner ett hot i vaktläge
 RASER = [
     ("truffle", "Truffle", "Pomeranian", "ludd", 0.68, "plains",
      dict(pals=(74, 54, 42), skugga=(44, 32, 26), under=(156, 114, 74),
-          ogon=(206, 150, 70), monster=["brost"])),
+          ogon=(206, 150, 70), monster=["brost"]), {'liv': 12, 'fart': 0.34, 'bett': 2, 'apport': 10, 'grav': 1.1, 'varsel': 20}),
     ("rufus", "Rufus", "Golden Retriever", "hang", 1.05, "forest",
      dict(pals=(214, 166, 92), skugga=(172, 126, 62), under=(240, 216, 170),
-          ogon=(92, 62, 36), monster=["brost"])),
+          ogon=(92, 62, 36), monster=["brost"]), {'liv': 22, 'fart': 0.33, 'bett': 4, 'apport': 24, 'grav': 1.0, 'varsel': 14}),
     ("kelda", "Kelda", "Siberian Husky", "normal", 1.0, "taiga",
      dict(pals=(176, 182, 192), skugga=(72, 78, 90), under=(242, 244, 248),
-          ogon=(96, 178, 210), monster=["mask", "brost", "sockor"])),
+          ogon=(96, 178, 210), monster=["mask", "brost", "sockor"]), {'liv': 22, 'fart': 0.34, 'bett': 4, 'apport': 16, 'grav': 1.0, 'varsel': 14}),
     ("pepper", "Pepper", "Border Collie", "hang", 0.95, "plains",
      dict(pals=(44, 42, 46), skugga=(26, 24, 28), under=(238, 238, 234),
-          ogon=(118, 84, 48), monster=["brost", "blas", "sockor"])),
+          ogon=(118, 84, 48), monster=["brost", "blas", "sockor"]), {'liv': 20, 'fart': 0.35, 'bett': 4, 'apport': 18, 'grav': 1.0, 'varsel': 16}),
     ("pickle", "Pickle", "Dachshund", "kort", 0.8, "plains",
      dict(pals=(138, 74, 40), skugga=(88, 44, 24), under=(196, 132, 78),
-          ogon=(70, 48, 30), monster=["brost"])),
+          ogon=(70, 48, 30), monster=["brost"]), {'liv': 16, 'fart': 0.27, 'bett': 3, 'apport': 12, 'grav': 0.5, 'varsel': 12}),
     ("bruno", "Bruno", "Saint Bernard", "tung", 1.2, "extreme_hills",
      dict(pals=(186, 116, 62), skugga=(120, 68, 34), under=(246, 244, 238),
-          ogon=(86, 58, 34), monster=["brost", "blas", "sockor"])),
+          ogon=(86, 58, 34), monster=["brost", "blas", "sockor"]), {'liv': 26, 'fart': 0.28, 'bett': 6, 'apport': 14, 'grav': 1.2, 'varsel': 12}),
     ("dot", "Dot", "Dalmatian", "hang", 1.0, "plains",
      dict(pals=(240, 240, 236), skugga=(38, 36, 38), under=(250, 250, 248),
-          ogon=(96, 74, 52), monster=["flackar"])),
+          ogon=(96, 74, 52), monster=["flackar"]), {'liv': 20, 'fart': 0.36, 'bett': 4, 'apport': 16, 'grav': 1.0, 'varsel': 14}),
     ("scout", "Scout", "Jack Russell Terrier", "liten", 0.75, "plains",
      dict(pals=(238, 234, 224), skugga=(176, 120, 62), under=(250, 248, 244),
-          ogon=(74, 54, 38), monster=["sadel", "brost"])),
+          ogon=(74, 54, 38), monster=["sadel", "brost"]), {'liv': 14, 'fart': 0.4, 'bett': 3, 'apport': 14, 'grav': 0.8, 'varsel': 14}),
 ]
 
 
@@ -451,7 +468,7 @@ SPRAK = {
 def sprakrader(spr):
     t = SPRAK[spr]
     rader = []
-    for rasid, namn, ras, _k, _s, _b, _f in RASER:
+    for rasid, namn, ras, _k, _s, _b, _f, _m in RASER:
         r = RAS_SV[ras] if spr == "sv_SE" else ras
         rader += [f"entity.{NS}:{rasid}.name={namn} ({r})",
                   f"entity.{rasid}.name={namn} ({r})",
@@ -497,7 +514,7 @@ def ikon(rasid, farg, oron):
     rr.write_png(f"{RP}/textures/items/dc_{rasid}.png", N, N, px)
 
 
-def entitet(rasid, skala):
+def entitet(rasid, skala, matt):
     e = {"format_version": "1.20.50", "minecraft:entity": {
         "description": {"identifier": f"{NS}:{rasid}", "is_spawnable": True,
                         "is_summonable": True, "is_experimental": False,
@@ -519,10 +536,15 @@ def entitet(rasid, skala):
                                                "default": 0, "client_sync": True}}},
         "components": {
             "minecraft:type_family": {"family": ["dc_hund", "mob"]},
-            "minecraft:health": {"value": 20, "max": 20},
-            "minecraft:collision_box": {"width": 0.7, "height": 0.9},
+            "minecraft:health": {"value": matt["liv"], "max": matt["liv"]},
+            # TRÄFFYTAN FÖLJER STORLEKEN. Den var 0,7 för alla åtta, så en
+            # pomeranian på skala 0,68 var lika bred att gå in i som en
+            # bernhardshund på 1,2. minecraft:scale skalar modellen, inte
+            # kollisionslådan.
+            "minecraft:collision_box": {"width": round(0.7 * skala, 2),
+                                        "height": round(0.9 * skala, 2)},
             "minecraft:physics": {}, "minecraft:pushable": {"is_pushable": True},
-            "minecraft:movement": {"value": 0.33},
+            "minecraft:movement": {"value": matt["fart"]},
             "minecraft:movement.basic": {}, "minecraft:jump.static": {},
             "minecraft:navigation.walk": {"can_path_over_water": True, "avoid_water": True},
             "minecraft:nameable": {},
@@ -626,7 +648,7 @@ def entitet(rasid, skala):
                         {"test": "is_family", "subject": "other", "value": "monster"}]},
                         "max_dist": 12}]},
                 "minecraft:behavior.melee_attack": {"priority": 7},
-                "minecraft:attack": {"damage": 4},
+                "minecraft:attack": {"damage": matt["bett"]},
             },
             # APPORT: vaniljas egen upplockning gör navigeringen åt oss. Att
             # skriptstyra en entitet fram till ett föremål går inte — det finns
@@ -637,7 +659,7 @@ def entitet(rasid, skala):
                 # om samma hund. Upplockningen har lägre siffra och vinner
                 # därför över hemgåendet så länge bollen ligger kvar.
                 "minecraft:behavior.pickup_items": {
-                    "priority": 2, "max_dist": RACKVIDD, "goal_radius": 1.6,
+                    "priority": 2, "max_dist": matt["apport"], "goal_radius": 1.6,
                     "speed_multiplier": 1.3, "pickup_based_on_chance": False,
                     "track_target": True},
             },
@@ -794,7 +816,7 @@ def ljud():
     finns ingen facitlista att kontrollera mot på servern (BDS resurspaket
     innehåller inga ljud). Därför bara vargens välkända namn."""
     ent = {}
-    for rasid, _namn, _ras, _kropp, skala, _biom, _farg in RASER:
+    for rasid, _namn, _ras, _kropp, skala, _biom, _farg, _matt in RASER:
         pitch = round(1.6 - 0.6 * skala, 2)
         ent[f"{NS}:{rasid}"] = {
             "volume": 0.9, "pitch": [round(pitch - 0.08, 2), round(pitch + 0.08, 2)],
@@ -847,16 +869,24 @@ if __name__ == "__main__":
     # SPAWNVIKTEN DELAS INOM BIOMET. Fem raser i plains med vikt 3 var blev
     # samlad vikt 15 — nästan dubbelt mot vaniljas varg (8), alltså hundar
     # överallt. Vikten räknas nu fram ur hur många raser som delar biomet.
+    # RASTABELLEN TILL SKRIPTET. Grävfrekvensen och varslet bor i main.js, och
+    # skriptet kan inte läsa entitets-JSON — en handskriven kopia hade glidit
+    # isär från RASER vid första justeringen. Samma lösning som grispaketets.
+    tab = {f"{NS}:{r[0]}": {"grav": r[7]["grav"], "varsel": r[7]["varsel"]} for r in RASER}
+    open(f"{BP}/scripts/raser.js", "w", encoding="utf-8").write(
+        "// GENERERAD AV tools/make_dogs.py — ändra i RASER, inte här.\n"
+        "export const RASER = " + json.dumps(tab, indent=1) + ";\n")
+
     antal = Counter(r[5] for r in RASER)
     VIKT = {b: max(1, round(4 / n)) for b, n in antal.items()}
     delar, uv = skriv_geometrier()
     renderarkontroller()
     ljud()
     itex = {"resource_pack_name": "loyal", "texture_name": "atlas.items", "texture_data": {}}
-    for rasid, namn, ras, kropp, skala, biom, farg in RASER:
+    for rasid, namn, ras, kropp, skala, biom, farg, matt in RASER:
         pals(rasid, delar[kropp], uv[kropp], farg)
         ikon(rasid, farg, KROPPAR[kropp][5])
-        entitet(rasid, skala)
+        entitet(rasid, skala, matt)
         klient(rasid, kropp)
         spawnregel(rasid, biom, VIKT[biom])
         itex["texture_data"][f"dc_{rasid}"] = {"textures": f"textures/items/dc_{rasid}"}
