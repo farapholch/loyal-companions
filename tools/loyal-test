@@ -74,8 +74,12 @@ for f in sorted(glob.glob(f"{SRC}/LoyalCompanions_RP/entity/*.json")):
     if not os.path.exists(tex): bad.append(f"{namn}: textur saknas"); continue
     tw, th = struct.unpack(">II", open(tex, "rb").read()[16:24])
     dsc = geo["description"]
-    if (dsc.get("texture_width"), dsc.get("texture_height")) != (tw, th):
-        bad.append(f"{namn}: geometrins texturstorlek != PNG {tw}x{th}")
+    # Arket får vara en HELTALSMULTIPEL av geometrins uv-enheter (fyra texlar
+    # per enhet sedan v1.5.0), aldrig en annan proportion.
+    kx, ky = tw / dsc.get("texture_width", 1), th / dsc.get("texture_height", 1)
+    if kx != ky or kx != int(kx) or kx < 1:
+        bad.append(f"{namn}: arket {tw}x{th} är inte en heltalsmultipel av geometrins "
+                   f"{dsc.get('texture_width')}x{dsc.get('texture_height')}")
     for anim in d.get("animations", {}).values():
         for krav in KRAV.get(anim, []):
             if krav not in BEN: bad.append(f"{namn}: {anim} kräver benet '{krav}'")

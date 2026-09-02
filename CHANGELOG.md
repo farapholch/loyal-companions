@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.5.0
+
+**Fur, four texels per unit.** Every dog was drawn at one texel per model unit,
+so each side of a dog was a single flat colour with a lighter top: the bib was
+a white wedge, the eye one texel, the nose a black square. The coats are on
+sheets four times as dense now (512x512 for the same geometry), and that is
+the difference between a colour and a coat.
+
+Fur has grain and faint strands running the right way — along the body,
+down the legs. Socks have a soft, wavy edge, the bib tapers with a soft edge,
+the husky mask has a proper blaze through it, the terrier's saddle has a
+rounded lower edge, and Dot's spots are round. Eyes have an outline, an iris
+that darkens toward the bottom, a round pupil and a highlight, with a soft brow
+above. The nose is a rounded black tip with nostrils and a mouth line under it.
+Upright ears have a lighter inner ear. Truffle's ruff is fluffy.
+
+The collars are leather now, with stitching and a buckle at the front. The
+ball is shaded round with a seam, the stick has grain, the bone has knobs.
+
+Nothing about the dogs' behaviour changed.
+
 ## 1.4.0
 
 **De åtta hundarna är olika att använda nu.** Fram till i dag hade de exakt

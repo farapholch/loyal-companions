@@ -42,6 +42,7 @@ def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, halsband=0,
          bakgrund=(22, 26, 34, 255)):
     tw, th, tex = rr.read_png(f"{RP}/{texnamn}.png")
     geo = GEO[geoid]
+    k = tw / geo["description"]["texture_width"]     # texlar per uv-enhet
     ya, pa = math.radians(yaw), math.radians(pitch)
     # MUNKUBERNA visas bara när hunden bär något — annars ligger boll, pinne och
     # ben i högen samtidigt, precis det renderarkontrollern finns för att hindra.
@@ -89,8 +90,8 @@ def rita(geoid, texnamn, W, H, yaw=34, pitch=14, pose=POSE, bar=0, halsband=0,
                         px = int(X * sc + offx); py = int(H - (Y * sc + offy))
                         if not (0 <= px < W and 0 <= py < H) or Z >= zb[py][px]:
                             continue
-                        col = tex[min(th - 1, max(0, int(v0 + b * fh)))][
-                            min(tw - 1, max(0, int(u0 + a * fw)))]
+                        col = tex[min(th - 1, max(0, int((v0 + b * fh) * k)))][
+                            min(tw - 1, max(0, int((u0 + a * fw) * k)))]
                         if col[3] < 8:
                             continue
                         cv[py][px] = (int(col[0] * skugga), int(col[1] * skugga),
